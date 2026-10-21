@@ -2,37 +2,37 @@
 
 ## Phase 0 --- Project setup
 
--   [ ] Create a SwiftUI iOS project named `Neighbourly`.
--   [ ] Set the minimum iOS version to the version supported by the
+-   [x] Create a SwiftUI iOS project named `Neighbourly`.
+-   [x] Set the minimum iOS version to the version supported by the
     installed Xcode (target iOS 17+ if available).
--   [ ] Create folders: App, Domain, Data, Services, Features,
+-   [x] Create folders: App, Domain, Data, Services, Features,
     Components, Resources.
--   [ ] Add a simple app theme (colors, spacing, typography) using
+-   [x] Add a simple app theme (colors, spacing, typography) using
     system colors so Dark Mode works.
--   [ ] Add a README/project note stating: local-only prototype, no paid
+-   [x] Add a README/project note stating: local-only prototype, no paid
     APIs, Simulator demo.
--   [ ] Confirm a clean build and launch in Simulator.
+-   [x] Confirm a clean build and launch in Simulator.
 
 **Acceptance:** app opens to a placeholder Browse screen with no
 external dependencies.
 
 ## Phase 1 --- Domain and local storage
 
--   [ ] Define `ListingMode` (`sell`, `exchange`, `donate`),
+-   [x] Define `ListingMode` (`sell`, `exchange`, `donate`),
     `ListingCategory`, and `ItemCondition`.
--   [ ] Define the `Listing` model with UUID, title, description,
+-   [x] Define the `Listing` model with UUID, title, description,
     category, mode, optional price, condition, photo filenames, optional
     coordinates/area, seller fields, and creation date.
--   [ ] Implement validation (title, price/mode rules, coordinate
+-   [x] Implement validation (title, price/mode rules, coordinate
     pair/range).
--   [ ] Define `ListingRepository` protocol.
--   [ ] Implement `LocalListingRepository` using Codable JSON in
+-   [x] Define `ListingRepository` protocol.
+-   [x] Implement `LocalListingRepository` using Codable JSON in
     Application Support (or SwiftData if chosen).
--   [ ] Implement `PhotoStore` to copy images into app-owned storage and
+-   [x] Implement `PhotoStore` to copy images into app-owned storage and
     return filenames.
--   [ ] Add first-launch sample data with several categories and modes,
+-   [x] Add first-launch sample data with several categories and modes,
     including map coordinates.
--   [ ] Add repository tests for create/read/update/delete and
+-   [x] Add repository tests for create/read/update/delete and
     validation.
 -   [ ] Verify saved listings survive app termination/relaunch.
 

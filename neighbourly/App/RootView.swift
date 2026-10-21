@@ -2,18 +2,19 @@
 //  RootView.swift
 //  neighbourly
 //
-//  App composition root. Dependencies (repository, services) will be
-//  created here and injected into feature screens in later phases.
+//  App composition root: hands dependencies to feature screens.
 //
 
 import SwiftUI
 
 struct RootView: View {
+    let dependencies: AppDependencies
+
     var body: some View {
-        BrowseView()
+        BrowseView(repository: dependencies.listingRepository)
     }
 }
 
 #Preview {
-    RootView()
+    RootView(dependencies: .preview())
 }

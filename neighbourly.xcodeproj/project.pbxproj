@@ -6,8 +6,19 @@
 	objectVersion = 110;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		5E1A00012F00000000000003 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2232D301308893480044ABB9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2232D308308893480044ABB9;
+			remoteInfo = neighbourly;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		2232D309308893480044ABB9 /* neighbourly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = neighbourly.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5E1A00012F00000000000002 /* neighbourlyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = neighbourlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -16,10 +27,20 @@
 			path = neighbourly;
 			sourceTree = "<group>";
 		};
+		5E1A00012F00000000000001 /* neighbourlyTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = neighbourlyTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		2232D306308893480044ABB9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		5E1A00012F00000000000006 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
 			);
@@ -31,6 +52,7 @@
 			isa = PBXGroup;
 			children = (
 				2232D30B308893480044ABB9 /* neighbourly */,
+				5E1A00012F00000000000001 /* neighbourlyTests */,
 				2232D30A308893480044ABB9 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -39,6 +61,7 @@
 			isa = PBXGroup;
 			children = (
 				2232D309308893480044ABB9 /* neighbourly.app */,
+				5E1A00012F00000000000002 /* neighbourlyTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -64,6 +87,27 @@
 			productReference = 2232D309308893480044ABB9 /* neighbourly.app */;
 			productType = "com.apple.product-type.application";
 		};
+		5E1A00012F00000000000008 /* neighbourlyTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5E1A00012F00000000000009 /* Build configuration list for PBXNativeTarget "neighbourlyTests" */;
+			buildPhases = (
+				5E1A00012F00000000000005 /* Sources */,
+				5E1A00012F00000000000006 /* Frameworks */,
+				5E1A00012F00000000000007 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5E1A00012F00000000000004 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				5E1A00012F00000000000001 /* neighbourlyTests */,
+			);
+			name = neighbourlyTests;
+			productName = neighbourlyTests;
+			productReference = 5E1A00012F00000000000002 /* neighbourlyTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -76,6 +120,10 @@
 				TargetAttributes = {
 					2232D308308893480044ABB9 = {
 						CreatedOnToolsVersion = 27.0;
+					};
+					5E1A00012F00000000000008 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = 2232D308308893480044ABB9;
 					};
 				};
 			};
@@ -94,12 +142,18 @@
 			projectRoot = "";
 			targets = (
 				2232D308308893480044ABB9 /* neighbourly */,
+				5E1A00012F00000000000008 /* neighbourlyTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		2232D307308893480044ABB9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		5E1A00012F00000000000007 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -112,7 +166,20 @@
 			files = (
 			);
 		};
+		5E1A00012F00000000000005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		5E1A00012F00000000000004 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2232D308308893480044ABB9 /* neighbourly */;
+			targetProxy = 5E1A00012F00000000000003 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		2232D312308893490044ABB9 /* Debug configuration for PBXProject "neighbourly" */ = {
@@ -296,6 +363,48 @@
 			};
 			name = Release;
 		};
+		5E1A00012F0000000000000A /* Debug configuration for PBXNativeTarget "neighbourlyTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kjsce.neighbourlyTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/neighbourly.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/neighbourly";
+			};
+			name = Debug;
+		};
+		5E1A00012F0000000000000B /* Release configuration for PBXNativeTarget "neighbourlyTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kjsce.neighbourlyTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/neighbourly.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/neighbourly";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -312,6 +421,14 @@
 			buildConfigurations = (
 				2232D315308893490044ABB9 /* Debug configuration for PBXNativeTarget "neighbourly" */,
 				2232D316308893490044ABB9 /* Release configuration for PBXNativeTarget "neighbourly" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		5E1A00012F00000000000009 /* Build configuration list for PBXNativeTarget "neighbourlyTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5E1A00012F0000000000000A /* Debug configuration for PBXNativeTarget "neighbourlyTests" */,
+				5E1A00012F0000000000000B /* Release configuration for PBXNativeTarget "neighbourlyTests" */,
 			);
 			defaultConfigurationName = Release;
 		};

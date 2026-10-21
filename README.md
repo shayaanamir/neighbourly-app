@@ -20,7 +20,7 @@ donate everyday items to people nearby.
 
 1. Open `neighbourly.xcodeproj` in Xcode.
 2. Select the `neighbourly` scheme and an iPhone Simulator.
-3. Press **⌘R**.
+3. Press **⌘R** to run, **⌘U** to run the unit tests (`neighbourlyTests`).
 
 The project uses Xcode file-system synchronized groups: any file added
 under `neighbourly/` is picked up automatically, so files created on
