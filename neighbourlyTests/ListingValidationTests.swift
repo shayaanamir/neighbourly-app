@@ -89,9 +89,14 @@ struct ListingValidationTests {
 
     @Test func sampleListingsAreValidAndCoverEveryMode() {
         let samples = SampleListings.make()
-        #expect(samples.allSatisfy(\.isValid))
-        #expect(samples.allSatisfy(\.isDemo))
-        #expect(Set(samples.map(\.mode)) == Set(ListingMode.allCases))
+        // Evaluated outside #expect: the macro's expansion makes key-path
+        // arguments to rethrowing functions like allSatisfy look throwing.
+        let allValid = samples.allSatisfy { $0.isValid }
+        let allDemo = samples.allSatisfy { $0.isDemo }
+        let modes = Set(samples.map { $0.mode })
+        #expect(allValid)
+        #expect(allDemo)
+        #expect(modes == Set(ListingMode.allCases))
         #expect(samples.contains { $0.hasCoordinates })
         #expect(samples.contains { !$0.hasCoordinates })
     }

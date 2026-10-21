@@ -77,7 +77,8 @@ final class LocalListingRepositoryTests {
         try await repository.save(remove)
 
         try await repository.delete(id: remove.id)
-        #expect(try await repository.fetchListings().map(\.id) == [keep.id])
+        let ids = try await repository.fetchListings().map { $0.id }
+        #expect(ids == [keep.id])
     }
 
     @Test func deletingUnknownIdIsIgnored() async throws {
@@ -111,7 +112,8 @@ final class LocalListingRepositoryTests {
         try await repository.save(older)
         try await repository.save(newer)
 
-        #expect(try await repository.fetchListings().map(\.title) == ["Newer", "Older"])
+        let titles = try await repository.fetchListings().map { $0.title }
+        #expect(titles == ["Newer", "Older"])
     }
 
     @Test func corruptedFileThrowsAndResetRecovers() async throws {
