@@ -1,0 +1,8 @@
+# Edited on Windows, built on macOS: keep LF line endings in the repo
+# so Xcode and git on the Mac see clean files.
+* text=auto eol=lf
+*.pbxproj text eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
