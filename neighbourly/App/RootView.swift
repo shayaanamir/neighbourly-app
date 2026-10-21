@@ -11,7 +11,10 @@ struct RootView: View {
     let dependencies: AppDependencies
 
     var body: some View {
-        BrowseView(repository: dependencies.listingRepository)
+        BrowseView(
+            repository: dependencies.listingRepository,
+            photoStore: dependencies.photoStore
+        )
     }
 }
 

@@ -34,21 +34,21 @@ external dependencies.
     including map coordinates.
 -   [x] Add repository tests for create/read/update/delete and
     validation.
--   [ ] Verify saved listings survive app termination/relaunch.
+-   [x] Verify saved listings survive app termination/relaunch.
 
 **Acceptance:** local listings and photos persist without login,
 network, or paid services.
 
 ## Phase 2 --- Browse and listing cards
 
--   [ ] Build `ListingCard` with thumbnail, title, mode,
+-   [x] Build `ListingCard` with thumbnail, title, mode,
     price/"Free"/"Exchange", category, and area.
--   [ ] Build Browse list using repository data.
--   [ ] Add search across title, description, and area.
--   [ ] Add category and mode filters.
--   [ ] Add useful empty states and a clear-filters action.
--   [ ] Add a List/Map segmented control.
--   [ ] Add basic accessibility labels and Dynamic Type support.
+-   [x] Build Browse list using repository data.
+-   [x] Add search across title, description, and area.
+-   [x] Add category and mode filters.
+-   [x] Add useful empty states and a clear-filters action.
+-   [x] Add a List/Map segmented control.
+-   [x] Add basic accessibility labels and Dynamic Type support.
 
 **Acceptance:** search and filters produce the expected results on
 sample data.
