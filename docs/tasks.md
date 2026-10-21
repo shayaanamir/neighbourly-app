@@ -55,16 +55,16 @@ sample data.
 
 ## Phase 3 --- Map and location fallback
 
--   [ ] Build MapKit map annotations/markers for listings with
+-   [x] Build MapKit map annotations/markers for listings with
     coordinates.
--   [ ] Tapping a marker selects a listing and presents a
+-   [x] Tapping a marker selects a listing and presents a
     preview/detail.
--   [ ] Add an optional "Use my location" action and request When-In-Use
+-   [x] Add an optional "Use my location" action and request When-In-Use
     permission only on tap.
--   [ ] Keep the list usable if permission is denied or location is
+-   [x] Keep the list usable if permission is denied or location is
     unavailable.
--   [ ] Show a map empty state if no listings have coordinates.
--   [ ] Use demo coordinates/locality labels; do not put private
+-   [x] Show a map empty state if no listings have coordinates.
+-   [x] Use demo coordinates/locality labels; do not put private
     addresses in sample data.
 -   [ ] Test with location permission denied and with network/map tiles
     unavailable.

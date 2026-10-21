@@ -2,8 +2,8 @@
 //  BrowseView.swift
 //  neighbourly
 //
-//  Search, filter, and switch between list and map. The map itself arrives
-//  in Phase 3; for now Map mode shows a placeholder.
+//  Search, filter, and switch between list and map. Both views show the
+//  same filtered results.
 //
 
 import SwiftUI
@@ -11,10 +11,12 @@ import SwiftUI
 struct BrowseView: View {
     @State private var viewModel: BrowseViewModel
     private let photoStore: PhotoStore
+    private let locationService: LocationService
 
-    init(repository: any ListingRepository, photoStore: PhotoStore) {
+    init(repository: any ListingRepository, photoStore: PhotoStore, locationService: LocationService) {
         _viewModel = State(initialValue: BrowseViewModel(repository: repository))
         self.photoStore = photoStore
+        self.locationService = locationService
     }
 
     var body: some View {
@@ -121,7 +123,13 @@ struct BrowseView: View {
         } else {
             switch viewModel.displayMode {
             case .list: listingList
-            case .map: mapPlaceholder
+            case .map:
+                ListingMapView(
+                    listings: viewModel.results,
+                    photoStore: photoStore,
+                    locationService: locationService,
+                    onShowList: { viewModel.displayMode = .list }
+                )
             }
         }
     }
@@ -144,18 +152,13 @@ struct BrowseView: View {
         .refreshable { await viewModel.load() }
     }
 
-    private var mapPlaceholder: some View {
-        ContentUnavailableView {
-            Label("Map coming soon", systemImage: "map")
-        } description: {
-            Text("Listings with a location will appear on a map here.")
-        } actions: {
-            Button("Show list") { viewModel.displayMode = .list }
-        }
-    }
 }
 
 #Preview {
     let dependencies = AppDependencies.preview()
-    BrowseView(repository: dependencies.listingRepository, photoStore: dependencies.photoStore)
+    BrowseView(
+        repository: dependencies.listingRepository,
+        photoStore: dependencies.photoStore,
+        locationService: dependencies.locationService
+    )
 }

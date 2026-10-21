@@ -13,7 +13,8 @@ struct RootView: View {
     var body: some View {
         BrowseView(
             repository: dependencies.listingRepository,
-            photoStore: dependencies.photoStore
+            photoStore: dependencies.photoStore,
+            locationService: dependencies.locationService
         )
     }
 }
