@@ -91,20 +91,20 @@ it after relaunch.
 
 ## Phase 5 --- On-device Vision assist
 
--   [ ] Add `VisionAssistService` with a classification method using
+-   [x] Add `VisionAssistService` with a classification method using
     `VNClassifyImageRequest`.
--   [ ] Map a small curated set of labels to listing categories; default
+-   [x] Map a small curated set of labels to listing categories; default
     unknown labels to "Other".
--   [ ] Add OCR using `VNRecognizeTextRequest`.
--   [ ] Add "Suggest details" action to Create Listing.
--   [ ] Show a loading/progress state and graceful no-result/error
+-   [x] Add OCR using `VNRecognizeTextRequest`.
+-   [x] Add "Suggest details" action to Create Listing.
+-   [x] Show a loading/progress state and graceful no-result/error
     states.
--   [ ] Present detected labels/text as suggestions, not final data;
+-   [x] Present detected labels/text as suggestions, not final data;
     user must confirm/edit.
--   [ ] Ensure Vision requests do not block the main UI.
+-   [x] Ensure Vision requests do not block the main UI.
 -   [ ] Add tests for category mapping and manual checks with a book,
     appliance, and item with printed text.
--   [ ] Add a short UI disclosure: image analysis runs on device;
+-   [x] Add a short UI disclosure: image analysis runs on device;
     results can be wrong.
 
 **Acceptance:** no API key or upload is used; suggestions can be

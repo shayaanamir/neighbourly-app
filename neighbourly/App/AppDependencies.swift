@@ -12,6 +12,7 @@ struct AppDependencies {
     let listingRepository: any ListingRepository
     let photoStore: PhotoStore
     let locationService: LocationService
+    let visionAssist: any VisionAssisting
 
     /// On-device storage in Application Support/Neighbourly.
     static func live() -> AppDependencies {
@@ -21,7 +22,8 @@ struct AppDependencies {
         return AppDependencies(
             listingRepository: LocalListingRepository(directory: root, photoStore: photoStore),
             photoStore: photoStore,
-            locationService: LocationService()
+            locationService: LocationService(),
+            visionAssist: VisionAssistService()
         )
     }
 
@@ -30,7 +32,8 @@ struct AppDependencies {
         AppDependencies(
             listingRepository: InMemoryListingRepository(),
             photoStore: PhotoStore(directory: URL.temporaryDirectory.appending(path: "PreviewPhotos")),
-            locationService: LocationService()
+            locationService: LocationService(),
+            visionAssist: VisionAssistService()
         )
     }
 }

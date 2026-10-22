@@ -47,6 +47,15 @@ final class CreateListingViewModel {
         var photoCount: Int
     }
 
+    /// Progress of the optional "Suggest details" on-device analysis.
+    enum AssistState: Equatable {
+        case idle
+        case analyzing
+        case result(ImageSuggestions)
+        case noResult
+        case failed(String)
+    }
+
     private enum ParsedPrice {
         case empty
         case value(Decimal)
@@ -70,15 +79,25 @@ final class CreateListingViewModel {
     private(set) var photos: [SelectedPhoto] = []
     private(set) var attemptedSave = false
     private(set) var isSaving = false
+    private(set) var assistState: AssistState = .idle
     var photoMessage: String?
     var saveError: String?
 
     @ObservationIgnored private let repository: any ListingRepository
     @ObservationIgnored private let photoStore: PhotoStore
+    @ObservationIgnored private let visionAssist: any VisionAssisting
+    /// Identifies the analysis whose result is still wanted; stale results are dropped.
+    @ObservationIgnored private var analysisToken: UUID?
+    @ObservationIgnored private var analyzedPhotoID: SelectedPhoto.ID?
 
-    init(repository: any ListingRepository, photoStore: PhotoStore) {
+    init(
+        repository: any ListingRepository,
+        photoStore: PhotoStore,
+        visionAssist: any VisionAssisting = VisionAssistService()
+    ) {
         self.repository = repository
         self.photoStore = photoStore
+        self.visionAssist = visionAssist
     }
 
     // MARK: Derived state
@@ -147,6 +166,50 @@ final class CreateListingViewModel {
     func removePhoto(id: SelectedPhoto.ID) {
         photos.removeAll { $0.id == id }
         photoMessage = nil
+        // Suggestions describe the removed photo, so they no longer apply.
+        if id == analyzedPhotoID { dismissSuggestions() }
+    }
+
+    // MARK: Suggest details (on-device Vision)
+
+    /// Analyses the first photo. Never changes the form by itself: the user picks
+    /// which suggestions to apply.
+    func suggestDetails() async {
+        guard let photo = photos.first, assistState != .analyzing else { return }
+
+        let token = UUID()
+        analysisToken = token
+        analyzedPhotoID = photo.id
+        assistState = .analyzing
+
+        do {
+            let suggestions = try await visionAssist.analyze(imageData: photo.data)
+            guard analysisToken == token else { return }
+            assistState = suggestions.isEmpty ? .noResult : .result(suggestions)
+        } catch {
+            guard analysisToken == token else { return }
+            assistState = .failed(error.localizedDescription)
+        }
+    }
+
+    func applySuggestedCategory(_ suggested: ListingCategory) {
+        category = suggested
+    }
+
+    func useAsTitle(_ line: String) {
+        title = String(line.trimmed.prefix(Listing.maxTitleLength))
+    }
+
+    func appendToDescription(_ line: String) {
+        let existing = description.trimmed
+        description = existing.isEmpty ? line : existing + "
+" + line
+    }
+
+    func dismissSuggestions() {
+        analysisToken = nil
+        analyzedPhotoID = nil
+        assistState = .idle
     }
 
     private static func makeThumbnail(from data: Data) async -> UIImage? {

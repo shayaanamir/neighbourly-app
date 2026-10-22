@@ -14,7 +14,8 @@ struct RootView: View {
         BrowseView(
             repository: dependencies.listingRepository,
             photoStore: dependencies.photoStore,
-            locationService: dependencies.locationService
+            locationService: dependencies.locationService,
+            visionAssist: dependencies.visionAssist
         )
     }
 }

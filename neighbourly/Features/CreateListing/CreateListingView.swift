@@ -20,9 +20,14 @@ struct CreateListingView: View {
     init(
         repository: any ListingRepository,
         photoStore: PhotoStore,
+        visionAssist: any VisionAssisting,
         onSaved: @escaping (Listing) -> Void
     ) {
-        _viewModel = State(initialValue: CreateListingViewModel(repository: repository, photoStore: photoStore))
+        _viewModel = State(initialValue: CreateListingViewModel(
+            repository: repository,
+            photoStore: photoStore,
+            visionAssist: visionAssist
+        ))
         self.onSaved = onSaved
     }
 
@@ -30,6 +35,7 @@ struct CreateListingView: View {
         NavigationStack {
             Form {
                 photosSection
+                ImageAssistReviewView(viewModel: viewModel)
                 detailsSection
                 offerSection
                 sellerSection
@@ -289,6 +295,7 @@ struct CreateListingView: View {
     CreateListingView(
         repository: dependencies.listingRepository,
         photoStore: dependencies.photoStore,
+        visionAssist: dependencies.visionAssist,
         onSaved: { _ in }
     )
 }

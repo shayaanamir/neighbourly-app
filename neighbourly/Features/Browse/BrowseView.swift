@@ -15,12 +15,19 @@ struct BrowseView: View {
     private let repository: any ListingRepository
     private let photoStore: PhotoStore
     private let locationService: LocationService
+    private let visionAssist: any VisionAssisting
 
-    init(repository: any ListingRepository, photoStore: PhotoStore, locationService: LocationService) {
+    init(
+        repository: any ListingRepository,
+        photoStore: PhotoStore,
+        locationService: LocationService,
+        visionAssist: any VisionAssisting
+    ) {
         _viewModel = State(initialValue: BrowseViewModel(repository: repository))
         self.repository = repository
         self.photoStore = photoStore
         self.locationService = locationService
+        self.visionAssist = visionAssist
     }
 
     var body: some View {
@@ -53,7 +60,11 @@ struct BrowseView: View {
                 }
             }
             .sheet(isPresented: $showCreateListing) {
-                CreateListingView(repository: repository, photoStore: photoStore) { listing in
+                CreateListingView(
+                    repository: repository,
+                    photoStore: photoStore,
+                    visionAssist: visionAssist
+                ) { listing in
                     Task {
                         await viewModel.listingAdded()
                         await showSavedBanner(for: listing)
@@ -205,6 +216,7 @@ struct BrowseView: View {
     BrowseView(
         repository: dependencies.listingRepository,
         photoStore: dependencies.photoStore,
-        locationService: dependencies.locationService
+        locationService: dependencies.locationService,
+        visionAssist: dependencies.visionAssist
     )
 }
