@@ -2,7 +2,7 @@
 //  CreateListingView.swift
 //  neighbourly
 //
-//  Sheet form for adding a listing. Presented from Browse.
+//  Sheet form for adding a listing, or editing one of your own when `editing` is set.
 //
 
 import PhotosUI
@@ -21,12 +21,14 @@ struct CreateListingView: View {
         repository: any ListingRepository,
         photoStore: PhotoStore,
         visionAssist: any VisionAssisting,
+        editing listing: Listing? = nil,
         onSaved: @escaping (Listing) -> Void
     ) {
         _viewModel = State(initialValue: CreateListingViewModel(
             repository: repository,
             photoStore: photoStore,
-            visionAssist: visionAssist
+            visionAssist: visionAssist,
+            editing: listing
         ))
         self.onSaved = onSaved
     }
@@ -40,7 +42,7 @@ struct CreateListingView: View {
                 offerSection
                 sellerSection
             }
-            .navigationTitle("New Listing")
+            .navigationTitle(viewModel.isEditing ? "Edit Listing" : "New Listing")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -56,9 +58,10 @@ struct CreateListingView: View {
                     }
                 }
             }
+            .task { await viewModel.loadExistingPhotos() }
             .interactiveDismissDisabled(viewModel.isDirty || viewModel.isSaving)
-            .confirmationDialog("Discard this listing?", isPresented: $showDiscardDialog, titleVisibility: .visible) {
-                Button("Discard Listing", role: .destructive) { dismiss() }
+            .confirmationDialog(viewModel.isEditing ? "Discard your changes?" : "Discard this listing?", isPresented: $showDiscardDialog, titleVisibility: .visible) {
+                Button(viewModel.isEditing ? "Discard Changes" : "Discard Listing", role: .destructive) { dismiss() }
                 Button("Keep Editing", role: .cancel) {}
             } message: {
                 Text("Your changes haven't been saved.")

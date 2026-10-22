@@ -12,23 +12,14 @@ struct BrowseView: View {
     @State private var viewModel: BrowseViewModel
     @State private var showCreateListing = false
     @State private var savedBannerTitle: String?
-    private let repository: any ListingRepository
-    private let photoStore: PhotoStore
-    private let locationService: LocationService
-    private let visionAssist: any VisionAssisting
+    private let dependencies: AppDependencies
 
-    init(
-        repository: any ListingRepository,
-        photoStore: PhotoStore,
-        locationService: LocationService,
-        visionAssist: any VisionAssisting
-    ) {
-        _viewModel = State(initialValue: BrowseViewModel(repository: repository))
-        self.repository = repository
-        self.photoStore = photoStore
-        self.locationService = locationService
-        self.visionAssist = visionAssist
+    init(dependencies: AppDependencies) {
+        _viewModel = State(initialValue: BrowseViewModel(repository: dependencies.listingRepository))
+        self.dependencies = dependencies
     }
+
+    private var photoStore: PhotoStore { dependencies.photoStore }
 
     var body: some View {
         NavigationStack {
@@ -61,9 +52,9 @@ struct BrowseView: View {
             }
             .sheet(isPresented: $showCreateListing) {
                 CreateListingView(
-                    repository: repository,
-                    photoStore: photoStore,
-                    visionAssist: visionAssist
+                    repository: dependencies.listingRepository,
+                    photoStore: dependencies.photoStore,
+                    visionAssist: dependencies.visionAssist
                 ) { listing in
                     Task {
                         await viewModel.listingAdded()
@@ -72,9 +63,13 @@ struct BrowseView: View {
                 }
             }
             .overlay(alignment: .bottom) { savedBanner }
-            .task {
-                if !viewModel.hasLoaded { await viewModel.load() }
+            .navigationDestination(for: Listing.self) { listing in
+                ListingDetailView(listing: listing, dependencies: dependencies) {
+                    Task { await viewModel.load() }
+                }
             }
+            // Runs each time the tab is shown, so edits and deletes made in My Listings appear here.
+            .task { await viewModel.load() }
         }
     }
 
@@ -185,7 +180,7 @@ struct BrowseView: View {
                 ListingMapView(
                     listings: viewModel.results,
                     photoStore: photoStore,
-                    locationService: locationService,
+                    locationService: dependencies.locationService,
                     onShowList: { viewModel.displayMode = .list }
                 )
             }
@@ -201,7 +196,11 @@ struct BrowseView: View {
                     .foregroundStyle(Theme.Colors.secondaryText)
 
                 ForEach(results) { listing in
-                    ListingCard(listing: listing, photoStore: photoStore)
+                    NavigationLink(value: listing) {
+                        ListingCard(listing: listing, photoStore: photoStore)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Opens listing details")
                 }
             }
             .padding(.horizontal, Theme.Spacing.l)
@@ -213,10 +212,5 @@ struct BrowseView: View {
 
 #Preview {
     let dependencies = AppDependencies.preview()
-    BrowseView(
-        repository: dependencies.listingRepository,
-        photoStore: dependencies.photoStore,
-        locationService: dependencies.locationService,
-        visionAssist: dependencies.visionAssist
-    )
+    BrowseView(dependencies: dependencies)
 }

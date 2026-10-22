@@ -11,12 +11,13 @@ struct RootView: View {
     let dependencies: AppDependencies
 
     var body: some View {
-        BrowseView(
-            repository: dependencies.listingRepository,
-            photoStore: dependencies.photoStore,
-            locationService: dependencies.locationService,
-            visionAssist: dependencies.visionAssist
-        )
+        TabView {
+            BrowseView(dependencies: dependencies)
+                .tabItem { Label("Browse", systemImage: "square.grid.2x2") }
+
+            MyListingsView(dependencies: dependencies)
+                .tabItem { Label("My Listings", systemImage: "tray.full") }
+        }
     }
 }
 

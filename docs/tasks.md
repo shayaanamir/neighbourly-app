@@ -112,14 +112,14 @@ dismissed or edited.
 
 ## Phase 6 --- Details, contact, and My Listings
 
--   [ ] Build Listing Detail with image gallery, details, area, mode,
+-   [x] Build Listing Detail with image gallery, details, area, mode,
     and price.
--   [ ] Add Contact Seller action using `ShareLink`/system share sheet
+-   [x] Add Contact Seller action using `ShareLink`/system share sheet
     or a clearly labeled local demo contact flow.
--   [ ] Never show seeded fictional seller contact as a real person.
--   [ ] Build My Listings for items created on this device.
--   [ ] Add edit and delete actions; confirm before delete.
--   [ ] Handle deleted/missing photo files.
+-   [x] Never show seeded fictional seller contact as a real person.
+-   [x] Build My Listings for items created on this device.
+-   [x] Add edit and delete actions; confirm before delete.
+-   [x] Handle deleted/missing photo files.
 
 **Acceptance:** user can inspect an item and trigger the demo contact
 action; own listings can be managed.

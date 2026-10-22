@@ -148,7 +148,11 @@ struct ListingMapView: View {
     @ViewBuilder
     private var selectionPreview: some View {
         if let listing = selectedListing {
-            ListingCard(listing: listing, photoStore: photoStore)
+            NavigationLink(value: listing) {
+                ListingCard(listing: listing, photoStore: photoStore)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Opens listing details")
                 .overlay(alignment: .topTrailing) {
                     Button {
                         selectedID = nil

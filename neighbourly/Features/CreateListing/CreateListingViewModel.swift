@@ -2,8 +2,9 @@
 //  CreateListingViewModel.swift
 //  neighbourly
 //
-//  Form state for creating a listing. Photos are only held in memory while
-//  the form is open; they're copied into `PhotoStore` when the user saves.
+//  Form state for creating or editing a listing. New photos are only held in
+//  memory while the form is open; they're copied into `PhotoStore` on save.
+//  Photos that already belong to the listing being edited stay on disk.
 //
 
 import Foundation
@@ -16,8 +17,15 @@ final class CreateListingViewModel {
     static let defaultSellerName = "Me"
 
     struct SelectedPhoto: Identifiable {
+        enum Source {
+            /// Picked in this form, not yet stored.
+            case new(Data)
+            /// Already stored for the listing being edited.
+            case existing(fileName: String)
+        }
+
         let id = UUID()
-        let data: Data
+        let source: Source
         let thumbnail: UIImage
     }
 
@@ -44,7 +52,7 @@ final class CreateListingViewModel {
         var areaName: String
         var sellerName: String
         var sellerContact: String
-        var photoCount: Int
+        var photoIDs: [SelectedPhoto.ID]
     }
 
     /// Progress of the optional "Suggest details" on-device analysis.
@@ -86,6 +94,11 @@ final class CreateListingViewModel {
     @ObservationIgnored private let repository: any ListingRepository
     @ObservationIgnored private let photoStore: PhotoStore
     @ObservationIgnored private let visionAssist: any VisionAssisting
+    /// The listing being edited, or nil when creating a new one.
+    @ObservationIgnored private let original: Listing?
+    /// What the form looked like when it opened; `isDirty` compares against this.
+    @ObservationIgnored private var baseline: Snapshot
+    @ObservationIgnored private var hasLoadedExistingPhotos = false
     /// Identifies the analysis whose result is still wanted; stale results are dropped.
     @ObservationIgnored private var analysisToken: UUID?
     @ObservationIgnored private var analyzedPhotoID: SelectedPhoto.ID?
@@ -93,11 +106,73 @@ final class CreateListingViewModel {
     init(
         repository: any ListingRepository,
         photoStore: PhotoStore,
-        visionAssist: any VisionAssisting = VisionAssistService()
+        visionAssist: any VisionAssisting = VisionAssistService(),
+        editing original: Listing? = nil
     ) {
         self.repository = repository
         self.photoStore = photoStore
         self.visionAssist = visionAssist
+        self.original = original
+
+        // Build the baseline from the listing itself (not from self's observable
+        // properties), then copy it into the form fields.
+        let initial = Self.initialSnapshot(for: original)
+        baseline = initial
+        title = initial.title
+        description = initial.description
+        category = initial.category
+        mode = initial.mode
+        condition = initial.condition
+        priceInput = initial.priceInput
+        areaName = initial.areaName
+        sellerName = initial.sellerName
+        sellerContact = initial.sellerContact
+    }
+
+    private static func initialSnapshot(for original: Listing?) -> Snapshot {
+        Snapshot(
+            title: original?.title ?? "",
+            description: original?.description ?? "",
+            category: original?.category ?? .other,
+            mode: original?.mode ?? .sell,
+            condition: original?.condition ?? .good,
+            priceInput: original?.price.map(priceInput(from:)) ?? "",
+            areaName: original?.areaName ?? "",
+            sellerName: original?.sellerName ?? defaultSellerName,
+            sellerContact: original?.sellerContact ?? "",
+            photoIDs: []
+        )
+    }
+
+    var isEditing: Bool { original != nil }
+
+    /// Plain number in the current locale, matching what the price field parses.
+    private static func priceInput(from price: Decimal) -> String {
+        price.formatted(.number.locale(.current).grouping(.never).precision(.fractionLength(0...2)))
+    }
+
+    /// Loads thumbnails for the edited listing's stored photos. Files that have gone
+    /// missing are skipped, so saving quietly drops the dead references.
+    func loadExistingPhotos() async {
+        guard let original, !hasLoadedExistingPhotos else { return }
+        hasLoadedExistingPhotos = true
+
+        let store = photoStore
+        var loaded: [SelectedPhoto] = []
+        for fileName in original.imageFileNames.prefix(Self.maxPhotos) {
+            let thumbnail = await Task.detached(priority: .userInitiated) {
+                store.image(named: fileName)?.preparingThumbnail(of: CGSize(width: 400, height: 400))
+            }.value
+            if let thumbnail {
+                loaded.append(SelectedPhoto(source: .existing(fileName: fileName), thumbnail: thumbnail))
+            }
+        }
+        // Keep anything the user added while this was loading.
+        photos = loaded + photos
+        baseline.photoIDs = loaded.map { $0.id }
+        if loaded.count < original.imageFileNames.count {
+            photoMessage = "Some photos for this listing are missing and will be removed when you save."
+        }
     }
 
     // MARK: Derived state
@@ -107,7 +182,7 @@ final class CreateListingViewModel {
     }
 
     var isDirty: Bool {
-        snapshot != Self.pristine
+        snapshot != baseline
     }
 
     /// Errors for every field, whether or not the user has tried to save yet.
@@ -153,7 +228,7 @@ final class CreateListingViewModel {
                 break
             }
             if let thumbnail = await Self.makeThumbnail(from: data) {
-                photos.append(SelectedPhoto(data: data, thumbnail: thumbnail))
+                photos.append(SelectedPhoto(source: .new(data), thumbnail: thumbnail))
             } else {
                 skipped += 1
             }
@@ -183,7 +258,8 @@ final class CreateListingViewModel {
         assistState = .analyzing
 
         do {
-            let suggestions = try await visionAssist.analyze(imageData: photo.data)
+            let imageData = try await Self.imageData(for: photo, in: photoStore)
+            let suggestions = try await visionAssist.analyze(imageData: imageData)
             guard analysisToken == token else { return }
             assistState = suggestions.isEmpty ? .noResult : .result(suggestions)
         } catch {
@@ -211,6 +287,19 @@ final class CreateListingViewModel {
         assistState = .idle
     }
 
+    /// Bytes of a form photo: in memory for new ones, read from disk for stored ones.
+    private static func imageData(for photo: SelectedPhoto, in store: PhotoStore) async throws -> Data {
+        switch photo.source {
+        case .new(let data):
+            return data
+        case .existing(let fileName):
+            let url = store.url(for: fileName)
+            let data = await Task.detached(priority: .userInitiated) { try? Data(contentsOf: url) }.value
+            guard let data else { throw VisionAssistError.unreadableImage }
+            return data
+        }
+    }
+
     private static func makeThumbnail(from data: Data) async -> UIImage? {
         await Task.detached(priority: .userInitiated) {
             UIImage(data: data)?.preparingThumbnail(of: CGSize(width: 400, height: 400))
@@ -229,19 +318,32 @@ final class CreateListingViewModel {
         defer { isSaving = false }
 
         let store = photoStore
-        let photoData = photos.map { $0.data }
-        var fileNames: [String] = []
+        let newPhotoData: [Data] = photos.compactMap {
+            if case .new(let data) = $0.source { return data }
+            return nil
+        }
+        var newFileNames: [String] = []
         do {
             // Decoding and re-encoding photos is slow; keep it off the main actor.
-            fileNames = try await Task.detached(priority: .userInitiated) {
-                try store.save(imagesData: photoData)
+            newFileNames = try await Task.detached(priority: .userInitiated) {
+                try store.save(imagesData: newPhotoData)
             }.value
+
+            // Final order matches the form: kept photos stay where they were, new ones follow.
+            var remainingNew = newFileNames.makeIterator()
+            let fileNames: [String] = photos.compactMap {
+                switch $0.source {
+                case .existing(let fileName): fileName
+                case .new: remainingNew.next()
+                }
+            }
             let listing = makeListing(imageFileNames: fileNames)
+            // When editing, the repository deletes files the listing no longer references.
             try await repository.save(listing)
             return listing
         } catch {
-            // Don't leave photos behind for a listing that wasn't saved.
-            for fileName in fileNames { store.delete(named: fileName) }
+            // Don't leave new photos behind for a listing that wasn't saved.
+            for fileName in newFileNames { store.delete(named: fileName) }
             saveError = error.localizedDescription
             return nil
         }
@@ -256,6 +358,7 @@ final class CreateListingViewModel {
         }
 
         return Listing(
+            id: original?.id ?? UUID(),
             title: title.trimmed,
             description: description.trimmed,
             category: category,
@@ -263,9 +366,14 @@ final class CreateListingViewModel {
             price: price,
             condition: condition,
             imageFileNames: imageFileNames,
+            // The form has no location picker, so editing keeps whatever the listing had.
+            latitude: original?.latitude,
+            longitude: original?.longitude,
             areaName: areaName.trimmed.nilIfEmpty,
             sellerName: sellerName.trimmed,
-            sellerContact: sellerContact.trimmed.nilIfEmpty
+            sellerContact: sellerContact.trimmed.nilIfEmpty,
+            createdAt: original?.createdAt ?? .now,
+            isDemo: original?.isDemo ?? false
         )
     }
 
@@ -288,15 +396,9 @@ final class CreateListingViewModel {
         Snapshot(
             title: title, description: description, category: category, mode: mode,
             condition: condition, priceInput: priceInput, areaName: areaName,
-            sellerName: sellerName, sellerContact: sellerContact, photoCount: photos.count
+            sellerName: sellerName, sellerContact: sellerContact, photoIDs: photos.map { $0.id }
         )
     }
-
-    private static let pristine = Snapshot(
-        title: "", description: "", category: .other, mode: .sell, condition: .good,
-        priceInput: "", areaName: "", sellerName: defaultSellerName, sellerContact: "",
-        photoCount: 0
-    )
 }
 
 private extension String {
