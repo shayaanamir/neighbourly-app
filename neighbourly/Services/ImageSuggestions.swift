@@ -17,6 +17,9 @@ nonisolated struct ImageSuggestions: Equatable, Sendable {
     var labels: [String]
     /// Text found in the image, one entry per recognised line.
     var textLines: [String]
+    /// True when image classification itself failed (as opposed to finding nothing),
+    /// so the UI can say the category is unknown rather than showing a fake guess.
+    var classificationUnavailable = false
 
     /// True when there is nothing worth showing the user.
     var isEmpty: Bool { labels.isEmpty && textLines.isEmpty }
@@ -104,6 +107,16 @@ nonisolated enum ListingCategoryMapper {
         return .other
     }
 
+    private static let textHints: [(ListingCategory, Set<String>)] = [
+        (.books, ["isbn", "novel", "edition", "author", "paperback", "hardcover", "publisher", "publishers", "bestseller"]),
+    ]
+
+    /// Category implied by printed words, or nil if none match.
+    static func category(forText lines: [String]) -> ListingCategory? {
+        let words = Set(lines.flatMap { $0.lowercased().split(whereSeparator: { !$0.isLetter }).map(String.init) })
+        return textHints.first { !$0.1.isDisjoint(with: words) }?.0
+    }
+
     /// "coffee_table" -> "Coffee table"
     static func displayName(for identifier: String) -> String {
         let spaced = identifier.replacingOccurrences(of: "_", with: " ")
@@ -114,20 +127,33 @@ nonisolated enum ListingCategoryMapper {
 // MARK: - Building suggestions from raw Vision output
 
 nonisolated enum SuggestionBuilder {
-    static let minimumLabelConfidence: Float = 0.15
+    static let minimumLabelConfidence: Float = 0.1
     static let maxLabels = 5
     static let maxTextLines = 8
     static let maxTextLineLength = 120
 
-    static func make(labels: [ClassifiedLabel], recognizedText: [String]) -> ImageSuggestions {
+    static func make(
+        labels: [ClassifiedLabel],
+        recognizedText: [String],
+        classificationAvailable: Bool = true
+    ) -> ImageSuggestions {
         let confident = labels
             .filter { $0.confidence >= minimumLabelConfidence }
             .sorted { $0.confidence > $1.confidence }
+        let textLines = cleanTextLines(recognizedText)
+
+        // Printed words like "ISBN" or "a novel" are a decent hint when the image
+        // labels alone don't point at a category.
+        var category = ListingCategoryMapper.category(for: confident)
+        if category == .other, let fromText = ListingCategoryMapper.category(forText: textLines) {
+            category = fromText
+        }
 
         return ImageSuggestions(
-            category: ListingCategoryMapper.category(for: confident),
+            category: category,
             labels: confident.prefix(maxLabels).map { ListingCategoryMapper.displayName(for: $0.identifier) },
-            textLines: cleanTextLines(recognizedText)
+            textLines: textLines,
+            classificationUnavailable: !classificationAvailable
         )
     }
 

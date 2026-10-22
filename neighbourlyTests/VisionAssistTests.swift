@@ -91,6 +91,23 @@ struct SuggestionBuilderTests {
         #expect(SuggestionBuilder.cleanTextLines([long]).first?.count == SuggestionBuilder.maxTextLineLength)
     }
 
+    @Test func printedBookWordsSuggestBooksWhenLabelsDoNot() {
+        let result = SuggestionBuilder.make(labels: [], recognizedText: ["A NOVEL", "Fyodor Dostoevsky"])
+        #expect(result.category == .books)
+    }
+
+    @Test func imageLabelsTakePrecedenceOverPrintedWords() {
+        let labels = [ClassifiedLabel(identifier: "laptop", confidence: 0.8)]
+        let result = SuggestionBuilder.make(labels: labels, recognizedText: ["A NOVEL"])
+        #expect(result.category == .electronics)
+    }
+
+    @Test func failedClassificationIsFlagged() {
+        let result = SuggestionBuilder.make(labels: [], recognizedText: ["Hello there"], classificationAvailable: false)
+        #expect(result.classificationUnavailable)
+        #expect(!SuggestionBuilder.make(labels: [], recognizedText: ["Hello there"]).classificationUnavailable)
+    }
+
     @Test func textAloneIsAResult() {
         let result = SuggestionBuilder.make(labels: [], recognizedText: ["Harry Potter"])
         #expect(!result.isEmpty)

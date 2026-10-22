@@ -76,6 +76,12 @@ struct ImageAssistReviewView: View {
     @ViewBuilder
     private func resultContent(_ suggestions: ImageSuggestions) -> some View {
         // Category
+        if suggestions.classificationUnavailable {
+            message(
+                "Couldn't identify the item type on this device, so pick a category yourself. (Simulators often can't.)",
+                systemImage: "questionmark.circle"
+            )
+        } else {
         HStack {
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Text("Suggested category")
@@ -93,6 +99,7 @@ struct ImageAssistReviewView: View {
                     .buttonStyle(.bordered)
                     .accessibilityLabel("Use \(suggestions.category.displayName) as category")
             }
+        }
         }
 
         // Labels (informational)

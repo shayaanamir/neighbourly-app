@@ -6,11 +6,15 @@
 //  Nothing leaves the device; no API key or network is involved.
 //
 
+import CoreML
 import Foundation
 import ImageIO
+import OSLog
 import Vision
 
 nonisolated struct VisionAssistService: VisionAssisting {
+    private static let logger = Logger(subsystem: "com.kjsce.neighbourly", category: "VisionAssist")
+
     func analyze(imageData: Data) async throws -> ImageSuggestions {
         // Vision's perform(_:) is synchronous and slow; keep it off the main actor.
         try await Task.detached(priority: .userInitiated) {
@@ -30,11 +34,21 @@ nonisolated struct VisionAssistService: VisionAssisting {
 
         do {
             let request = VNClassifyImageRequest()
+            #if targetEnvironment(simulator)
+            // The Simulator has no Neural Engine/GPU path for classification; use the CPU.
+            if let cpu = MLComputeDevice.allComputeDevices.first(where: { device in
+                if case .cpu = device { return true }
+                return false
+            }) {
+                request.setComputeDevice(cpu, for: .main)
+            }
+            #endif
             try VNImageRequestHandler(data: data, options: [:]).perform([request])
             labels = (request.results ?? []).map {
                 ClassifiedLabel(identifier: $0.identifier, confidence: $0.confidence)
             }
         } catch {
+            Self.logger.error("Classification failed: \(error.localizedDescription, privacy: .public)")
             labels = nil
         }
 
@@ -52,12 +66,17 @@ nonisolated struct VisionAssistService: VisionAssisting {
                 return candidate.string
             }
         } catch {
+            Self.logger.error("Text recognition failed: \(error.localizedDescription, privacy: .public)")
             text = nil
         }
 
         if labels == nil && text == nil {
             throw VisionAssistError.unavailable
         }
-        return SuggestionBuilder.make(labels: labels ?? [], recognizedText: text ?? [])
+        return SuggestionBuilder.make(
+            labels: labels ?? [],
+            recognizedText: text ?? [],
+            classificationAvailable: labels != nil
+        )
     }
 }
