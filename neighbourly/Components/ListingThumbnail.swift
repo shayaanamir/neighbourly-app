@@ -16,19 +16,21 @@ struct ListingThumbnail: View {
     @State private var image: UIImage?
 
     var body: some View {
-        ZStack {
-            Theme.Colors.accent.opacity(0.12)
-            if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                Image(systemName: category.systemImage)
-                    .font(.title2)
-                    .foregroundStyle(Theme.Colors.accent)
+        // The colour layer takes exactly the proposed size; the photo is an overlay,
+        // so a scaledToFill image can't enlarge the view, only get clipped to it.
+        Theme.Colors.accent.opacity(0.12)
+            .overlay {
+                if let image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    Image(systemName: category.systemImage)
+                        .font(.title2)
+                        .foregroundStyle(Theme.Colors.accent)
+                }
             }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.s))
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.s))
         .accessibilityHidden(true)
         .task(id: fileName) {
             image = await loadThumbnail()
