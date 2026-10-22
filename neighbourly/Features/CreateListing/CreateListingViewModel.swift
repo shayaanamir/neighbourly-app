@@ -202,8 +202,7 @@ final class CreateListingViewModel {
 
     func appendToDescription(_ line: String) {
         let existing = description.trimmed
-        description = existing.isEmpty ? line : existing + "
-" + line
+        description = existing.isEmpty ? line : existing + "\n" + line
     }
 
     func dismissSuggestions() {
