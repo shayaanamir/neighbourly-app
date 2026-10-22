@@ -21,9 +21,13 @@ nonisolated struct ImageSuggestions: Equatable, Sendable {
     /// True when image classification itself failed (as opposed to finding nothing),
     /// so the UI can say the category is unknown rather than showing a fake guess.
     var classificationUnavailable = false
+    /// Everything the classifier reported with its confidence (e.g. "Chair 12%"), including
+    /// labels that don't map to a category. Shown tucked away so users can see why a
+    /// suggestion was or wasn't made.
+    var allLabels: [String] = []
 
     /// True when there is nothing worth showing the user.
-    var isEmpty: Bool { labels.isEmpty && textLines.isEmpty }
+    var isEmpty: Bool { labels.isEmpty && textLines.isEmpty && allLabels.isEmpty }
 }
 
 nonisolated struct ClassifiedLabel: Equatable, Sendable {
@@ -68,7 +72,7 @@ nonisolated enum ListingCategoryMapper {
         .furniture: [
             "furniture", "chair", "armchair", "sofa", "couch", "table", "desk", "bed",
             "mattress", "shelf", "bookshelf", "bookcase", "cabinet", "drawer", "wardrobe",
-            "stool", "bench", "dresser", "recliner",
+            "stool", "bench", "dresser", "recliner", "seat", "seating", "chairs", "tables", "ottoman",
         ],
         .clothing: [
             "clothing", "apparel", "shirt", "tshirt", "jacket", "coat", "dress", "jeans",
@@ -128,7 +132,10 @@ nonisolated enum ListingCategoryMapper {
 // MARK: - Building suggestions from raw Vision output
 
 nonisolated enum SuggestionBuilder {
-    static let minimumLabelConfidence: Float = 0.1
+    /// Classifier confidences are spread over ~1,300 labels, so even a correct one is often low.
+    static let minimumLabelConfidence: Float = 0.05
+    static let minimumRawConfidence: Float = 0.02
+    static let maxRawLabels = 8
     static let maxLabels = 5
     static let maxTextLines = 8
     static let maxTextLineLength = 120
@@ -157,7 +164,12 @@ nonisolated enum SuggestionBuilder {
                 .prefix(maxLabels)
                 .map { ListingCategoryMapper.displayName(for: $0.identifier) },
             textLines: textLines,
-            classificationUnavailable: !classificationAvailable
+            classificationUnavailable: !classificationAvailable,
+            allLabels: labels
+                .filter { $0.confidence >= minimumRawConfidence }
+                .sorted { $0.confidence > $1.confidence }
+                .prefix(maxRawLabels)
+                .map { "\(ListingCategoryMapper.displayName(for: $0.identifier)) \(Int(($0.confidence * 100).rounded()))%" }
         )
     }
 

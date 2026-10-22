@@ -113,6 +113,15 @@ struct ImageAssistReviewView: View {
             .accessibilityElement(children: .combine)
         }
 
+        if !suggestions.allLabels.isEmpty {
+            DisclosureGroup("All detected labels") {
+                Text(verbatim: suggestions.allLabels.joined(separator: ", "))
+                    .font(Theme.Typography.caption)
+                    .foregroundStyle(Theme.Colors.secondaryText)
+            }
+            .font(Theme.Typography.caption)
+        }
+
         // Recognised text. Shown verbatim and never applied automatically; there is
         // deliberately no "use as price" or "use as contact" action.
         if !suggestions.textLines.isEmpty {

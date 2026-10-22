@@ -61,7 +61,7 @@ struct ListingCategoryMapperTests {
 struct SuggestionBuilderTests {
     @Test func lowConfidenceLabelsAreDropped() {
         let result = SuggestionBuilder.make(
-            labels: [ClassifiedLabel(identifier: "book", confidence: 0.05)],
+            labels: [ClassifiedLabel(identifier: "book", confidence: 0.01)],
             recognizedText: []
         )
         #expect(result.labels.isEmpty)

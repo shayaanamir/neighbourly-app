@@ -96,7 +96,13 @@ nonisolated struct VisionAssistService: VisionAssisting {
                 try VNImageRequestHandler(cgImage: cropped, options: [:]).perform([request])
                 succeeded = true
                 for observation in request.results ?? [] {
-                    best[observation.identifier] = max(best[observation.identifier] ?? 0, observation.confidence)
+                    // Raw confidences aren't comparable between labels; Vision's own
+                    // precision/recall check says which ones are trustworthy.
+                    var confidence = observation.confidence
+                    if observation.hasMinimumPrecision(0.1, forRecall: 0.7) {
+                        confidence = max(confidence, SuggestionBuilder.minimumLabelConfidence * 2)
+                    }
+                    best[observation.identifier] = max(best[observation.identifier] ?? 0, confidence)
                 }
             } catch {
                 lastError = error
@@ -104,7 +110,12 @@ nonisolated struct VisionAssistService: VisionAssisting {
         }
 
         if !succeeded, let lastError { throw lastError }
-        return best.map { ClassifiedLabel(identifier: $0.key, confidence: $0.value) }
+        let labels = best.map { ClassifiedLabel(identifier: $0.key, confidence: $0.value) }
+        let top = labels.sorted { $0.confidence > $1.confidence }.prefix(10)
+            .map { "\($0.identifier)=\(String(format: "%.2f", $0.confidence))" }
+            .joined(separator: ", ")
+        Self.logger.info("Top labels: \(top, privacy: .public)")
+        return labels
     }
 
     /// nil means "the whole image"; the rest are the centre and four overlapping corners,
