@@ -6,7 +6,6 @@
 //  Nothing leaves the device; no API key or network is involved.
 //
 
-import CoreML
 import Foundation
 import ImageIO
 import OSLog
@@ -36,7 +35,15 @@ nonisolated struct VisionAssistService: VisionAssisting {
         var text: [String]?
 
         do {
+            #if targetEnvironment(simulator)
+            // The Simulator's classifier doesn't read the image: with the CPU workaround it
+            // returned the same "night sky / moon" labels for every photo, and without it the
+            // request fails. Rather than show made-up labels, report classification as
+            // unavailable there. On a physical iPhone it runs normally.
+            throw VisionAssistError.unavailable
+            #else
             labels = try classify(data)
+            #endif
         } catch {
             Self.logger.error("Classification failed: \(error.localizedDescription, privacy: .public)")
             labels = nil
@@ -133,16 +140,6 @@ nonisolated struct VisionAssistService: VisionAssisting {
     }
 
     private static func makeClassifyRequest() -> VNClassifyImageRequest {
-        let request = VNClassifyImageRequest()
-        #if targetEnvironment(simulator)
-        // The Simulator has no Neural Engine/GPU path for classification; use the CPU.
-        if let cpu = MLComputeDevice.allComputeDevices.first(where: { device in
-            if case .cpu = device { return true }
-            return false
-        }) {
-            request.setComputeDevice(cpu, for: .main)
-        }
-        #endif
-        return request
+        VNClassifyImageRequest()
     }
 }
