@@ -20,9 +20,11 @@ donate everyday items to people nearby.
 > - **Limitations.** No push notifications, moderation, blocking, or
 >   payments; free-tier quotas apply.
 
-> **Status:** Phases 0--6 (local app) and the code for Phase 7 (Core ML
-> classifier) are written. Phases 8--11 (authentication,
-> shared listings, chat, polish) are planned in
+> **Status:** Phases 0--6 (local app) are built and tested. The code for
+> Phases 7--10 (Core ML classifier, accounts, shared listings, chat) is
+> written; the Firebase-backed parts are compile-guarded until the
+> Firebase package is added on the Mac, and the app runs in an in-memory
+> demo mode until then. Phase 11 (polish) is next. See
 > [`docs/tasks.md`](docs/tasks.md).
 
 ## Requirements

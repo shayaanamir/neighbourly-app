@@ -246,35 +246,40 @@ photos, for Bob on another Simulator; Bob cannot edit or delete it.
 
 ## Phase 10 --- Text chat between buyer and seller
 
--   [ ] Define `Conversation` and `ChatMessage` with deterministic
+-   [x] Define `Conversation` and `ChatMessage` with deterministic
     conversation IDs (`listingID_buyerID`).
--   [ ] Define `ChatRepository`; implement `FirestoreChatRepository`
+-   [x] Define `ChatRepository`; implement `FirestoreChatRepository`
     (snapshot listeners exposed as `AsyncStream`) and
-    `InMemoryChatRepository` for tests and previews.
--   [ ] Add rules for `conversations` and `messages`: participants only;
+    `InMemoryChatRepository` for tests, previews, and demo mode. *(The
+    Firestore version is guarded by `#if canImport(FirebaseFirestore)` and
+    not yet compiled against the SDK; until the package is added, demo
+    mode lets two demo accounts chat on one Simulator while the app runs.)*
+-   [x] Add rules for `conversations` and `messages` *(written in
+    `firebase/firestore.rules`; publishing them in the console is a manual
+    step on the Mac)*: participants only;
     `senderID == request.auth.uid`; text length 1--1,000;
     `createdAt == request.time`; buyer cannot be the seller; no update or
     delete.
--   [ ] Add **Message Seller** to the listing detail for signed-in users
+-   [x] Add **Message Seller** to the listing detail for signed-in users
     on someone else's real listing; create or reopen the conversation;
     keep the share-sheet Contact Seller for demo listings; show Edit and
     Delete on your own listing instead.
--   [ ] Build the Messages tab inbox: newest first, other person's name,
+-   [x] Build the Messages tab inbox: newest first, other person's name,
     listing title, last message preview, time, unread indicator, and
     empty/signed-out states.
--   [ ] Build the conversation screen: message bubbles, day separators,
+-   [x] Build the conversation screen: message bubbles, day separators,
     multi-line composer with trimmed 1--1,000 character limit, Send
     disabled when invalid, auto-scroll to the newest message, and a link
     to the listing.
--   [ ] Show pending and failed sends with Retry; handle offline and
+-   [x] Show pending and failed sends with Retry; handle offline and
     permission-denied states.
--   [ ] Mark a conversation read when opened; show an unread badge on
+-   [x] Mark a conversation read when opened; show an unread badge on
     the Messages tab.
--   [ ] Attach listeners on appear and detach on disappear and on
+-   [x] Attach listeners on appear and detach on disappear and on
     sign-out so no data leaks between accounts.
--   [ ] Render messages as plain text; add VoiceOver labels for sender
+-   [x] Render messages as plain text; add VoiceOver labels for sender
     and time and Dynamic Type support.
--   [ ] Add tests with `InMemoryChatRepository`: conversation ID,
+-   [x] Add tests with `InMemoryChatRepository`: conversation ID,
     trimming and length limits, ordering, unread logic, cannot message
     your own listing.
 -   [ ] Manual test with two Simulators exchanging messages both ways,

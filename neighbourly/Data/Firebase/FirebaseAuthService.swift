@@ -31,7 +31,7 @@ enum FirebaseBootstrap {
 }
 
 final class FirebaseAuthService: AuthService {
-    private static let logger = Logger(subsystem: "com.kjsce.neighbourly", category: "Auth")
+    nonisolated private static let logger = Logger(subsystem: "com.kjsce.neighbourly", category: "Auth")
 
     func authStateChanges() -> AsyncStream<AppUser?> {
         let (stream, continuation) = AsyncStream<AppUser?>.makeStream()
@@ -119,7 +119,7 @@ final class FirebaseAuthService: AuthService {
 
     // MARK: - Mapping
 
-    private static func appUser(from user: User) -> AppUser {
+    nonisolated private static func appUser(from user: User) -> AppUser {
         let fallbackName = user.email?.split(separator: "@").first.map(String.init) ?? "Neighbour"
         let name = user.displayName?.trimmingCharacters(in: .whitespacesAndNewlines)
         return AppUser(

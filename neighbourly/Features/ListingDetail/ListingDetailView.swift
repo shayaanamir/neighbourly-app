@@ -13,19 +13,31 @@ struct ListingDetailView: View {
     let dependencies: AppDependencies
     /// Called after an edit or delete so list screens can reload.
     let onChanged: () -> Void
+    /// False when this screen was opened from the chat about the same listing, so Message
+    /// Seller can't open that chat a second time on top of itself.
+    let allowsMessaging: Bool
 
     @State private var listing: Listing
     @State private var showEditor = false
     @State private var showDeleteConfirmation = false
     @State private var showContactDetails = false
     @State private var errorMessage: String?
+    @State private var conversationToOpen: Conversation?
+    @State private var isStartingChat = false
+    @State private var chatErrorMessage: String?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(AuthViewModel.self) private var auth
 
-    init(listing: Listing, dependencies: AppDependencies, onChanged: @escaping () -> Void = {}) {
+    init(
+        listing: Listing,
+        dependencies: AppDependencies,
+        allowsMessaging: Bool = true,
+        onChanged: @escaping () -> Void = {}
+    ) {
         _listing = State(initialValue: listing)
         self.dependencies = dependencies
+        self.allowsMessaging = allowsMessaging
         self.onChanged = onChanged
     }
 
@@ -83,6 +95,19 @@ struct ListingDetailView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("“\(listing.title)” and its photos will be removed from this device.")
+        }
+        .navigationDestination(item: $conversationToOpen) { conversation in
+            if let user = auth.user {
+                ConversationView(conversation: conversation, user: user, dependencies: dependencies)
+            }
+        }
+        .alert("Couldn't start chat", isPresented: Binding(
+            get: { chatErrorMessage != nil },
+            set: { if !$0 { chatErrorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(chatErrorMessage ?? "")
         }
         .alert("Couldn't delete listing", isPresented: Binding(
             get: { errorMessage != nil },
@@ -177,30 +202,69 @@ struct ListingDetailView: View {
 
             Label(listing.sellerName, systemImage: "person.circle")
 
-            if listing.isDemo {
+            switch ChatEligibility.check(listing: listing, user: auth.user) {
+            case .canMessage, .signInRequired:
+                if allowsMessaging { messageSellerButton }
+
+            case .ownListing:
                 Label(
-                    "Demo listing. This seller is fictional and has no real contact details. Contact Seller only opens the share sheet with a draft message; nothing is sent from the app.",
+                    "This is your listing. When someone messages you about it, the chat appears in the Messages tab.",
                     systemImage: "info.circle"
                 )
                 .font(Theme.Typography.caption)
                 .foregroundStyle(Theme.Colors.secondaryText)
-            }
 
-            ShareLink(
-                item: ContactService.message(for: listing),
-                subject: Text(ContactService.subject(for: listing)),
-                message: Text(ContactService.message(for: listing))
-            ) {
-                Label("Contact Seller", systemImage: "square.and.arrow.up")
-                    .frame(maxWidth: .infinity)
+            case .sampleListing:
+                sampleContact
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-
-            contactDetails
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardStyle()
+    }
+
+    private var messageSellerButton: some View {
+        Button {
+            auth.requireSignIn { Task { await startChat() } }
+        } label: {
+            HStack {
+                if isStartingChat {
+                    ProgressView()
+                } else {
+                    Label("Message Seller", systemImage: "bubble.left.and.bubble.right")
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+        .disabled(isStartingChat)
+    }
+
+    /// Sample listings have fictional sellers, and listings saved before accounts existed
+    /// have no account to message, so both keep the share-sheet contact.
+    @ViewBuilder
+    private var sampleContact: some View {
+        if listing.isDemo {
+            Label(
+                "Demo listing. This seller is fictional, so there's no one to message. Contact Seller only opens the share sheet with a draft message; nothing is sent from the app.",
+                systemImage: "info.circle"
+            )
+            .font(Theme.Typography.caption)
+            .foregroundStyle(Theme.Colors.secondaryText)
+        }
+
+        ShareLink(
+            item: ContactService.message(for: listing),
+            subject: Text(ContactService.subject(for: listing)),
+            message: Text(ContactService.message(for: listing))
+        ) {
+            Label("Contact Seller", systemImage: "square.and.arrow.up")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+
+        contactDetails
     }
 
     /// The seller's own email/phone stays hidden until the user asks to see it.
@@ -225,6 +289,17 @@ struct ListingDetailView: View {
     }
 
     // MARK: - Actions
+
+    private func startChat() async {
+        guard let user = auth.user, !isStartingChat else { return }
+        isStartingChat = true
+        defer { isStartingChat = false }
+        do {
+            conversationToOpen = try await dependencies.chatRepository.startConversation(listing: listing, buyer: user)
+        } catch {
+            chatErrorMessage = (error as? LocalizedError)?.errorDescription ?? ChatError.unknown.errorDescription
+        }
+    }
 
     private func delete() async {
         do {

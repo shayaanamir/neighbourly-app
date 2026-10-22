@@ -6,7 +6,7 @@ rules_version = '2';
 // a modified app or a script can send any request, and only these rules stop it.
 // Publish them in the Firebase console (Firestore -> Rules) after every change.
 //
-// Phase 9 covers `users` and `listings`. Phase 10 adds `conversations`.
+// Phase 9 covers `users` and `listings`. Phase 10 adds `conversations` and `messages`.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -105,6 +105,86 @@ service cloud.firestore {
           && request.resource.data.data.size() <= 300000;
 
         allow delete: if isUser(resource.data.ownerID);
+      }
+    }
+
+    // -------------------------------------------------------- conversations
+    // One conversation per buyer per listing, with the ID "{listingID}_{buyerID}".
+    // Only its two participants can read it; nobody can read someone else's chat.
+    match /conversations/{conversationId} {
+
+      // `resource == null` lets a buyer check whether the conversation already exists
+      // before creating it; once it exists only participants can read it.
+      allow get: if signedIn()
+        && (resource == null || request.auth.uid in resource.data.participantIDs);
+
+      // Listing queries must be limited to the caller's own conversations
+      // (the app asks for participantIDs array-contains its own UID).
+      allow list: if signedIn() && request.auth.uid in resource.data.participantIDs;
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+            'listingID', 'listingTitle', 'sellerID', 'buyerID', 'sellerName', 'buyerName',
+            'participantIDs', 'readAt'
+          ])
+        && request.resource.data.keys().hasAll([
+            'listingID', 'listingTitle', 'sellerID', 'buyerID', 'sellerName', 'buyerName',
+            'participantIDs'
+          ])
+        // You can only start a chat as the buyer, never with yourself.
+        && request.resource.data.buyerID == request.auth.uid
+        && request.resource.data.sellerID != request.resource.data.buyerID
+        && request.resource.data.participantIDs.size() == 2
+        && request.resource.data.participantIDs.hasOnly([
+            request.resource.data.sellerID, request.resource.data.buyerID
+          ])
+        && conversationId == request.resource.data.listingID + '_' + request.resource.data.buyerID
+        // The "seller" must really be the listing's owner.
+        && get(/databases/$(database)/documents/listings/$(request.resource.data.listingID)).data.sellerID
+            == request.resource.data.sellerID
+        && request.resource.data.listingTitle is string && request.resource.data.listingTitle.size() <= 80
+        && request.resource.data.sellerName is string && request.resource.data.sellerName.size() <= 80
+        && request.resource.data.buyerName is string && request.resource.data.buyerName.size() <= 80;
+
+      // Participants may only touch the "last message" summary and their own read marker.
+      allow update: if signedIn()
+        && request.auth.uid in resource.data.participantIDs
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['lastMessageText', 'lastMessageAt', 'lastMessageSenderID', 'readAt'])
+        // A new summary must come from the person sending it, stamped with server time.
+        && (!request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny(['lastMessageText', 'lastMessageAt', 'lastMessageSenderID'])
+            || (request.resource.data.lastMessageSenderID == request.auth.uid
+                && request.resource.data.lastMessageAt == request.time
+                && request.resource.data.lastMessageText is string
+                && request.resource.data.lastMessageText.size() >= 1
+                && request.resource.data.lastMessageText.size() <= 1000))
+        // You can only move your own read marker.
+        && request.resource.data.readAt.diff(resource.data.readAt).affectedKeys()
+            .hasOnly([request.auth.uid]);
+
+      allow delete: if false;
+
+      // ------------------------------------------------------------ messages
+      // Messages are immutable: no edits and no deletes.
+      match /messages/{messageId} {
+        function conversation() {
+          return get(/databases/$(database)/documents/conversations/$(conversationId)).data;
+        }
+
+        allow read: if signedIn() && request.auth.uid in conversation().participantIDs;
+
+        allow create: if signedIn()
+          && request.auth.uid in conversation().participantIDs
+          && request.resource.data.keys().hasOnly(['senderID', 'text', 'createdAt'])
+          // You can only send as yourself, with the server's clock.
+          && request.resource.data.senderID == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() >= 1
+          && request.resource.data.text.size() <= 1000
+          && request.resource.data.createdAt == request.time;
+
+        allow update, delete: if false;
       }
     }
 

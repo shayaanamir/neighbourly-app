@@ -51,8 +51,11 @@ Firestore Database → Rules → paste the contents of
 change to that file. The rules, not the plist, are what stop users from
 editing each other's listings or reading each other's chats.
 
-`firestore.rules` already covers `users` and `listings` (Phase 9);
-conversations and messages are added in Phase 10, so re-publish then.
+`firestore.rules` covers `users`, `listings` (Phase 9), and
+`conversations` with their `messages` (Phase 10). Re-publish it whenever
+the file changes. If a chat action is refused even though the app looks
+right, the Rules tab's "Rules Playground" shows exactly which condition
+failed.
 
 ## Free-plan quotas
 

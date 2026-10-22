@@ -14,6 +14,7 @@ struct AppDependencies {
     let locationService: LocationService
     let visionAssist: any VisionAssisting
     let authService: any AuthService
+    let chatRepository: any ChatRepository
     /// False in demo mode (no Firebase config yet): accounts are in memory only.
     let isCloudBacked: Bool
 
@@ -32,6 +33,7 @@ struct AppDependencies {
             locationService: LocationService(),
             visionAssist: VisionAssistService(),
             authService: auth.service,
+            chatRepository: ChatRepositoryFactory.makeLive(isCloudBacked: auth.isCloudBacked),
             isCloudBacked: auth.isCloudBacked
         )
     }
@@ -45,6 +47,7 @@ struct AppDependencies {
             locationService: LocationService(),
             visionAssist: VisionAssistService(),
             authService: MockAuthService(),
+            chatRepository: InMemoryChatRepository(),
             isCloudBacked: false
         )
     }

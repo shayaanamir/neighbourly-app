@@ -315,10 +315,23 @@ missing documents gracefully, and surface friendly errors.
     linking back to the listing.
 3.  Messages stream live through Firestore snapshot listeners. Attach the
     listener when the screen appears and detach on disappear and on
-    sign-out.
-4.  Sends are optimistic: Firestore queues a write offline and shows it
-    as pending; failures show a Retry affordance.
-5.  Opening a conversation marks it read for the current user.
+    sign-out. The inbox lives at the root, follows the signed-in account
+    (`task(id: uid)`), and empties on sign-out or account switch so one
+    person's conversations are never shown to the next.
+4.  Sends are optimistic and idempotent. The device picks the message ID
+    and shows the message at once as "Sending…" in a local outbox; when the
+    server's copy with the same ID arrives it replaces the local one. A
+    failed send shows the reason with Retry and Delete. Offline, the write
+    waits for the connection and the message stays "Sending…". The message
+    and the conversation's last-message summary are written in one batch,
+    so the inbox never shows a message that doesn't exist.
+5.  A conversation is marked read for the current user only while its
+    screen is showing, once per new incoming message. Unread means "the
+    other person wrote last and I haven't opened the chat since"; the
+    Messages tab badge counts unread conversations.
+6.  Neither listener combines `orderBy` with `array-contains`, so no
+    composite index has to be created in the Firebase console: the inbox
+    is sorted on the device.
 
 ### My Listings
 
@@ -429,9 +442,14 @@ conversations/{id}/messages/{id}    senderID, text, createdAt
     size). The rules file is `firebase/firestore.rules`.
 -   `listings/{id}/photos`: public read; create/update/delete only by the
     uploader (`ownerID == request.auth.uid`); size-limited to 300 KB.
--   `conversations`: read/write only if `request.auth.uid` is in
-    `participantIDs`; create must list exactly the buyer and the
-    listing's seller, and the buyer cannot be the seller.
+-   `conversations`: readable only if `request.auth.uid` is in
+    `participantIDs` (a buyer may also check whether a conversation
+    already exists before creating it); create must be made by the
+    buyer, list exactly the buyer and the listing's seller (verified
+    against the listing document), use the ID `listingID_buyerID`, and
+    the buyer cannot be the seller; updates may only change the
+    last-message summary (stamped with server time by the sender) and the
+    caller's own read marker; no deletes.
 -   `messages`: read only by participants; create only by a participant
     with `senderID == request.auth.uid`, `text` a string of 1--1,000
     characters, and `createdAt == request.time`; no update or delete.
