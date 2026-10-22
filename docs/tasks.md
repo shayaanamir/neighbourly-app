@@ -74,16 +74,16 @@ browsing.
 
 ## Phase 4 --- Create listing
 
--   [ ] Build a form for title, description, category, listing mode,
+-   [x] Build a form for title, description, category, listing mode,
     condition, price, area, and optional seller contact.
--   [ ] Add `PhotosPicker` for selecting one or more images.
--   [ ] Show selected image previews and allow removal.
--   [ ] Copy selected images into `PhotoStore` on save.
--   [ ] Validate form inline (including price only for sell mode).
--   [ ] Save through `ListingRepository` and return to Browse/My
+-   [x] Add `PhotosPicker` for selecting one or more images.
+-   [x] Show selected image previews and allow removal.
+-   [x] Copy selected images into `PhotoStore` on save.
+-   [x] Validate form inline (including price only for sell mode).
+-   [x] Save through `ListingRepository` and return to Browse/My
     Listings.
--   [ ] Add cancel confirmation if the form contains unsaved changes.
--   [ ] Add tests for required title and sell/exchange/donate
+-   [x] Add cancel confirmation if the form contains unsaved changes.
+-   [x] Add tests for required title and sell/exchange/donate
     validation.
 
 **Acceptance:** a user can create a listing, see it in Browse, and find

@@ -43,6 +43,20 @@ nonisolated final class PhotoStore: Sendable {
         return fileName
     }
 
+    /// Saves several photos all-or-nothing: if one fails, the ones already written are removed.
+    func save(imagesData: [Data]) throws -> [String] {
+        var fileNames: [String] = []
+        do {
+            for data in imagesData {
+                fileNames.append(try save(imageData: data))
+            }
+        } catch {
+            for fileName in fileNames { delete(named: fileName) }
+            throw error
+        }
+        return fileNames
+    }
+
     func url(for fileName: String) -> URL {
         // Only the last path component is used so stored names can't escape the directory.
         let safeName = URL(fileURLWithPath: fileName).lastPathComponent

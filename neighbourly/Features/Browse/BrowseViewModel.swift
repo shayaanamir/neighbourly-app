@@ -65,6 +65,13 @@ final class BrowseViewModel {
         await load()
     }
 
+    /// Called after a new listing is saved: clear filters so it's visible, then reload.
+    func listingAdded() async {
+        filters.clear()
+        displayMode = .list
+        await load()
+    }
+
     func clearFilters() {
         filters.clear()
     }

@@ -10,11 +10,15 @@ import SwiftUI
 
 struct BrowseView: View {
     @State private var viewModel: BrowseViewModel
+    @State private var showCreateListing = false
+    @State private var savedBannerTitle: String?
+    private let repository: any ListingRepository
     private let photoStore: PhotoStore
     private let locationService: LocationService
 
     init(repository: any ListingRepository, photoStore: PhotoStore, locationService: LocationService) {
         _viewModel = State(initialValue: BrowseViewModel(repository: repository))
+        self.repository = repository
         self.photoStore = photoStore
         self.locationService = locationService
     }
@@ -39,10 +43,52 @@ struct BrowseView: View {
             .background(Theme.Colors.groupedBackground)
             .navigationTitle("Browse")
             .searchable(text: $viewModel.filters.searchText, prompt: "Search items or areas")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showCreateListing = true
+                    } label: {
+                        Label("Add Listing", systemImage: "plus")
+                    }
+                }
+            }
+            .sheet(isPresented: $showCreateListing) {
+                CreateListingView(repository: repository, photoStore: photoStore) { listing in
+                    Task {
+                        await viewModel.listingAdded()
+                        await showSavedBanner(for: listing)
+                    }
+                }
+            }
+            .overlay(alignment: .bottom) { savedBanner }
             .task {
                 if !viewModel.hasLoaded { await viewModel.load() }
             }
         }
+    }
+
+    // MARK: - Saved banner
+
+    @ViewBuilder
+    private var savedBanner: some View {
+        if let title = savedBannerTitle {
+            Label("“\(title)” added", systemImage: "checkmark.circle.fill")
+                .font(Theme.Typography.subheadline.weight(.semibold))
+                .padding(.horizontal, Theme.Spacing.l)
+                .padding(.vertical, Theme.Spacing.m)
+                .background(.regularMaterial, in: Capsule())
+                .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
+                .padding(.bottom, Theme.Spacing.xl)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .accessibilityAddTraits(.isStaticText)
+        }
+    }
+
+    private func showSavedBanner(for listing: Listing) async {
+        withAnimation { savedBannerTitle = listing.title }
+        UIAccessibility.post(notification: .announcement, argument: "\(listing.title) added")
+        try? await Task.sleep(for: .seconds(2.5))
+        withAnimation { savedBannerTitle = nil }
     }
 
     // MARK: - Filter bar
@@ -108,6 +154,7 @@ struct BrowseView: View {
             } description: {
                 Text("Items to sell, exchange, or donate in your neighbourhood will appear here.")
             } actions: {
+                Button("Add a listing") { showCreateListing = true }
                 Button("Load sample listings") {
                     Task { await viewModel.resetSampleData() }
                 }
@@ -151,7 +198,6 @@ struct BrowseView: View {
         }
         .refreshable { await viewModel.load() }
     }
-
 }
 
 #Preview {
