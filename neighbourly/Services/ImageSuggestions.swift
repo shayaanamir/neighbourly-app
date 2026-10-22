@@ -38,11 +38,14 @@ nonisolated struct ClassifiedLabel: Equatable, Sendable {
 nonisolated enum VisionAssistError: LocalizedError, Sendable {
     case unreadableImage
     case unavailable
+    /// The bundled Core ML model is missing from the app or failed to load.
+    case modelUnavailable
 
     var errorDescription: String? {
         switch self {
         case .unreadableImage: "That photo couldn't be analysed."
         case .unavailable: "Image analysis isn't available right now."
+        case .modelUnavailable: "The image recognition model couldn't be loaded."
         }
     }
 }
@@ -56,60 +59,117 @@ nonisolated protocol VisionAssisting: Sendable {
 // MARK: - Label → category mapping
 
 nonisolated enum ListingCategoryMapper {
-    /// A small curated vocabulary. Vision labels are lowercase identifiers such as
-    /// "laptop" or "coffee_table"; each underscore-separated word is matched.
+    /// A small curated vocabulary. Labels come from the bundled Core ML model (ImageNet names
+    /// such as "rocking chair, rocker") or from Vision's classifier (identifiers such as
+    /// "coffee_table"). Each label is split into lowercase words and the words are matched.
     private static let keywords: [ListingCategory: Set<String>] = [
         .electronics: [
             "electronics", "electronic", "laptop", "computer", "keyboard", "mouse", "monitor",
             "television", "tv", "phone", "telephone", "cellphone", "smartphone", "tablet",
-            "camera", "headphones", "headset", "speaker", "microphone", "remote", "charger",
-            "cable", "printer", "console", "radio", "screen", "display",
+            "camera", "headphones", "headset", "speaker", "loudspeaker", "microphone", "remote",
+            "charger", "cable", "printer", "console", "radio", "screen", "display", "ipod",
+            "projector", "modem", "joystick",
         ],
         .books: [
             "book", "books", "textbook", "notebook", "magazine", "novel", "paperback",
-            "comic", "publication", "encyclopedia", "dictionary",
+            "comic", "publication", "encyclopedia", "dictionary", "binder",
         ],
         .furniture: [
             "furniture", "chair", "armchair", "sofa", "couch", "table", "desk", "bed",
             "mattress", "shelf", "bookshelf", "bookcase", "cabinet", "drawer", "wardrobe",
-            "stool", "bench", "dresser", "recliner", "seat", "seating", "chairs", "tables", "ottoman",
+            "stool", "bench", "dresser", "recliner", "seat", "seating", "chairs", "tables",
+            "ottoman", "rocker", "crib", "cradle", "bassinet", "throne", "chiffonier",
         ],
         .clothing: [
-            "clothing", "apparel", "shirt", "tshirt", "jacket", "coat", "dress", "jeans",
+            "clothing", "apparel", "shirt", "tshirt", "jacket", "coat", "dress", "jeans", "jean",
             "pants", "trousers", "shoe", "shoes", "sneaker", "boot", "sandal", "hat", "cap",
             "sweater", "hoodie", "scarf", "backpack", "handbag", "purse", "sock", "glove",
-            "suit", "skirt",
+            "suit", "skirt", "jersey", "sweatshirt", "cardigan", "gown", "kimono", "poncho",
+            "cloak", "sombrero", "bonnet", "wallet", "tie", "stole", "trunks", "bikini",
+            "maillot", "pajama", "sarong", "abaya", "loafer", "clog", "sunglass", "sunglasses",
+            "mitten",
         ],
         .home: [
             "kitchen", "cookware", "pot", "pan", "kettle", "cup", "mug", "plate", "bowl",
             "utensil", "cutlery", "microwave", "refrigerator", "oven", "blender", "toaster",
             "lamp", "curtain", "pillow", "blanket", "vase", "clock", "appliance", "fan",
-            "vacuum", "cooker", "bottle",
+            "vacuum", "cooker", "bottle", "teapot", "coffeepot", "pitcher", "jug", "wok",
+            "caldron", "ladle", "spatula", "spoon", "dishwasher", "washer", "stove", "waffle",
+            "lampshade", "quilt", "towel", "washbasin", "bathtub", "candle", "rotisserie",
+            "opener", "corkscrew", "plunger", "broom", "bucket", "thermos", "saucepan",
         ],
         .sports: [
             "sport", "sports", "ball", "football", "soccer", "basketball", "cricket", "bat",
             "racket", "racquet", "tennis", "badminton", "bicycle", "bike", "helmet",
             "dumbbell", "yoga", "skateboard", "treadmill", "golf", "gym", "fitness",
+            "volleyball", "baseball", "barbell", "ski", "unicycle", "paddle", "canoe",
+            "scuba", "snorkel",
         ],
         .toys: [
             "toy", "toys", "doll", "teddy", "puzzle", "lego", "game", "boardgame", "chess",
-            "plush", "stuffed",
+            "plush", "stuffed", "pinwheel", "tricycle",
         ],
     ]
 
-    /// Category of the most confident label that maps to one; `.other` if none do.
-    static func category(for labels: [ClassifiedLabel]) -> ListingCategory {
-        for label in labels.sorted(by: { $0.confidence > $1.confidence }) {
-            let words = label.identifier.lowercased()
-                .split(whereSeparator: { $0 == "_" || $0 == " " || $0 == "," })
-                .map(String.init)
-            // allCases order keeps the result deterministic if a label matches several.
-            for category in ListingCategory.allCases {
-                guard let vocabulary = keywords[category] else { continue }
-                if words.contains(where: { vocabulary.contains($0) }) { return category }
+    /// Whole phrases that beat the single-word vocabulary, for labels whose words would
+    /// otherwise point at the wrong category ("book jacket" is a book, not clothing).
+    private static let phraseOverrides: [(phrase: String, category: ListingCategory)] = [
+        ("book jacket", .books),
+        ("comic book", .books),
+        ("table lamp", .home),
+        ("pool table", .sports),
+        ("billiard table", .sports),
+        ("punching bag", .sports),
+        ("balance beam", .sports),
+        ("horizontal bar", .sports),
+        ("parallel bars", .sports),
+        ("four poster", .furniture),
+        ("dining table", .furniture),
+    ]
+
+    /// Category of one label, or nil if it doesn't map to any.
+    static func category(forLabel identifier: String) -> ListingCategory? {
+        // Lowercase letters and single spaces only: "Four-poster" -> "four poster".
+        let words = identifier.lowercased()
+            .split(whereSeparator: { !$0.isLetter })
+            .map(String.init)
+        let normalized = words.joined(separator: " ")
+
+        for override in phraseOverrides where normalized.contains(override.phrase) {
+            return override.category
+        }
+        // allCases order keeps the result deterministic if a label matches several.
+        for category in ListingCategory.allCases {
+            guard let vocabulary = keywords[category] else { continue }
+            if words.contains(where: { word in
+                vocabulary.contains(word) || (word.hasSuffix("s") && vocabulary.contains(String(word.dropLast())))
+            }) {
+                return category
             }
         }
-        return .other
+        return nil
+    }
+
+    /// Category with the most total confidence across the labels that map to one; `.other`
+    /// if none do. Adding confidences means three weak "table"-ish labels can outvote one
+    /// stronger unrelated label.
+    static func category(for labels: [ClassifiedLabel]) -> ListingCategory {
+        var mass: [ListingCategory: Float] = [:]
+        for label in labels {
+            if let category = category(forLabel: label.identifier) {
+                mass[category, default: 0] += label.confidence
+            }
+        }
+        // Iterate allCases (not the dictionary) so ties resolve deterministically.
+        var best: ListingCategory = .other
+        var bestMass: Float = 0
+        for category in ListingCategory.allCases {
+            if let total = mass[category], total > bestMass {
+                best = category
+                bestMass = total
+            }
+        }
+        return best
     }
 
     private static let textHints: [(ListingCategory, Set<String>)] = [
@@ -122,9 +182,13 @@ nonisolated enum ListingCategoryMapper {
         return textHints.first { !$0.1.isDisjoint(with: words) }?.0
     }
 
-    /// "coffee_table" -> "Coffee table"
+    /// "coffee_table" -> "Coffee table"; "rocking chair, rocker" -> "Rocking chair"
+    /// (ImageNet labels list synonyms after commas; the first is the main name).
     static func displayName(for identifier: String) -> String {
-        let spaced = identifier.replacingOccurrences(of: "_", with: " ")
+        let firstName = identifier.split(separator: ",", maxSplits: 1).first.map(String.init) ?? identifier
+        let spaced = firstName
+            .replacingOccurrences(of: "_", with: " ")
+            .trimmingCharacters(in: .whitespaces)
         return spaced.prefix(1).uppercased() + spaced.dropFirst()
     }
 }

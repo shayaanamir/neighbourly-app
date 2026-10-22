@@ -49,7 +49,7 @@ struct ImageAssistReviewView: View {
         if viewModel.photos.isEmpty {
             return "Add a photo to get suggestions. Analysis runs on your device — nothing is uploaded — and results can be wrong, so always check them."
         }
-        return "Analysis runs on your device — nothing is uploaded. Results can be wrong, so check them before using. Based on your first photo."
+        return "A pretrained image model (MobileNetV2) and text recognition run on your device — nothing is uploaded. Results can be wrong, so check them before using. Based on your first photo."
     }
 
     // MARK: - Pieces
@@ -78,7 +78,7 @@ struct ImageAssistReviewView: View {
         // Category
         if suggestions.classificationUnavailable {
             message(
-                "Couldn't identify the item type on this device, so pick a category yourself. (Simulators often can't.)",
+                "Couldn't identify the item type, so pick a category yourself. The text found in the photo can still help.",
                 systemImage: "questionmark.circle"
             )
         } else {
@@ -114,7 +114,7 @@ struct ImageAssistReviewView: View {
         }
 
         if !suggestions.allLabels.isEmpty {
-            DisclosureGroup("All detected labels") {
+            DisclosureGroup("All detected labels (model guesses)") {
                 Text(verbatim: suggestions.allLabels.joined(separator: ", "))
                     .font(Theme.Typography.caption)
                     .foregroundStyle(Theme.Colors.secondaryText)

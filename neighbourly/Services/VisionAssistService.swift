@@ -2,8 +2,10 @@
 //  VisionAssistService.swift
 //  neighbourly
 //
-//  On-device image classification and OCR using Apple's Vision framework.
-//  Nothing leaves the device; no API key or network is involved.
+//  On-device photo assistance for Create Listing: an item-type guess from a
+//  classifier (bundled Core ML model first, Vision's classifier as a device-only
+//  fallback) plus text recognition with Vision OCR. Nothing leaves the device;
+//  no network or API key is involved.
 //
 
 import Foundation
@@ -14,58 +16,26 @@ import Vision
 nonisolated struct VisionAssistService: VisionAssisting {
     private static let logger = Logger(subsystem: "com.kjsce.neighbourly", category: "VisionAssist")
 
-    /// Longest edge, in pixels, of the image Vision classifies. Plenty for scene/object labels.
-    private static let classificationSize = 1024
+    private let primary: any ImageClassifying
+    private let fallback: (any ImageClassifying)?
 
-    func analyze(imageData: Data) async throws -> ImageSuggestions {
-        // Vision's perform(_:) is synchronous and slow; keep it off the main actor.
-        try await Task.detached(priority: .userInitiated) {
-            try Self.analyzeSynchronously(imageData)
-        }.value
+    init(
+        primary: any ImageClassifying = CoreMLClassificationService(),
+        fallback: (any ImageClassifying)? = VisionBuiltInClassifier.ifSupported
+    ) {
+        self.primary = primary
+        self.fallback = fallback
     }
 
-    private static func analyzeSynchronously(_ data: Data) throws -> ImageSuggestions {
-        guard CGImageSourceCreateWithData(data as CFData, nil) != nil else {
+    func analyze(imageData: Data) async throws -> ImageSuggestions {
+        guard CGImageSourceCreateWithData(imageData as CFData, nil) != nil else {
             throw VisionAssistError.unreadableImage
         }
 
-        // Run the two requests independently so one failing (e.g. classification
-        // on an unsupported device) doesn't discard the other's result.
-        var labels: [ClassifiedLabel]?
-        var text: [String]?
-
-        do {
-            #if targetEnvironment(simulator)
-            // The Simulator's classifier doesn't read the image: with the CPU workaround it
-            // returned the same "night sky / moon" labels for every photo, and without it the
-            // request fails. Rather than show made-up labels, report classification as
-            // unavailable there. On a physical iPhone it runs normally.
-            throw VisionAssistError.unavailable
-            #else
-            labels = try classify(data)
-            #endif
-        } catch {
-            Self.logger.error("Classification failed: \(error.localizedDescription, privacy: .public)")
-            labels = nil
-        }
-
+        // Classification and OCR are independent: one failing must not discard the other.
+        let labels = await classify(imageData)
         try Task.checkCancellation()
-
-        do {
-            let request = VNRecognizeTextRequest()
-            request.recognitionLevel = .accurate
-            request.usesLanguageCorrection = true
-            try VNImageRequestHandler(data: data, options: [:]).perform([request])
-            text = (request.results ?? []).compactMap { observation in
-                guard let candidate = observation.topCandidates(1).first, candidate.confidence >= 0.5 else {
-                    return nil
-                }
-                return candidate.string
-            }
-        } catch {
-            Self.logger.error("Text recognition failed: \(error.localizedDescription, privacy: .public)")
-            text = nil
-        }
+        let text = await Self.recognizeText(in: imageData)
 
         if labels == nil && text == nil {
             throw VisionAssistError.unavailable
@@ -77,69 +47,40 @@ nonisolated struct VisionAssistService: VisionAssisting {
         )
     }
 
-    // MARK: - Classification
+    /// Core ML first; if that can't run, the Vision fallback; nil if neither works.
+    private func classify(_ data: Data) async -> [ClassifiedLabel]? {
+        do {
+            return try await primary.classify(imageData: data)
+        } catch {
+            Self.logger.error("Primary classifier failed: \(error.localizedDescription, privacy: .public)")
+        }
+        guard let fallback else { return nil }
+        do {
+            return try await fallback.classify(imageData: data)
+        } catch {
+            Self.logger.error("Fallback classifier failed: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
 
-    /// Vision's classifier labels the whole scene, so an item sitting in a busy or dark
-    /// photo (a book next to a candle, say) can be drowned out. To counter that, classify
-    /// the full image plus overlapping crops and keep each label's best confidence.
-    private static func classify(_ data: Data) throws -> [ClassifiedLabel] {
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
-              let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
-                  kCGImageSourceCreateThumbnailFromImageAlways: true,
-                  kCGImageSourceCreateThumbnailWithTransform: true, // apply EXIF rotation
-                  kCGImageSourceThumbnailMaxPixelSize: classificationSize,
-              ] as CFDictionary)
-        else { throw VisionAssistError.unreadableImage }
-
-        var best: [String: Float] = [:]
-        var succeeded = false
-        var lastError: Error?
-
-        for crop in cropRegions(width: image.width, height: image.height) {
-            try Task.checkCancellation()
-            guard let cropped = crop == nil ? image : image.cropping(to: crop!) else { continue }
+    /// Recognised lines, or nil if text recognition itself failed.
+    private static func recognizeText(in data: Data) async -> [String]? {
+        await Task.detached(priority: .userInitiated) { () -> [String]? in
             do {
-                let request = makeClassifyRequest()
-                try VNImageRequestHandler(cgImage: cropped, options: [:]).perform([request])
-                succeeded = true
-                for observation in request.results ?? [] {
-                    // Raw confidences aren't comparable between labels; Vision's own
-                    // precision/recall check says which ones are trustworthy.
-                    var confidence = observation.confidence
-                    if observation.hasMinimumPrecision(0.1, forRecall: 0.7) {
-                        confidence = max(confidence, SuggestionBuilder.minimumLabelConfidence * 2)
+                let request = VNRecognizeTextRequest()
+                request.recognitionLevel = .accurate
+                request.usesLanguageCorrection = true
+                try VNImageRequestHandler(data: data, options: [:]).perform([request])
+                return (request.results ?? []).compactMap { observation in
+                    guard let candidate = observation.topCandidates(1).first, candidate.confidence >= 0.5 else {
+                        return nil
                     }
-                    best[observation.identifier] = max(best[observation.identifier] ?? 0, confidence)
+                    return candidate.string
                 }
             } catch {
-                lastError = error
+                Self.logger.error("Text recognition failed: \(error.localizedDescription, privacy: .public)")
+                return nil
             }
-        }
-
-        if !succeeded, let lastError { throw lastError }
-        let labels = best.map { ClassifiedLabel(identifier: $0.key, confidence: $0.value) }
-        let top = labels.sorted { $0.confidence > $1.confidence }.prefix(10)
-            .map { "\($0.identifier)=\(String(format: "%.2f", $0.confidence))" }
-            .joined(separator: ", ")
-        Self.logger.info("Top labels: \(top, privacy: .public)")
-        return labels
-    }
-
-    /// nil means "the whole image"; the rest are the centre and four overlapping corners,
-    /// each covering 60% of the width and height.
-    private static func cropRegions(width: Int, height: Int) -> [CGRect?] {
-        func region(_ x: Double, _ y: Double) -> CGRect {
-            CGRect(
-                x: (Double(width) * x).rounded(),
-                y: (Double(height) * y).rounded(),
-                width: (Double(width) * 0.6).rounded(),
-                height: (Double(height) * 0.6).rounded()
-            )
-        }
-        return [nil, region(0.2, 0.2), region(0, 0), region(0.4, 0), region(0, 0.4), region(0.4, 0.4)]
-    }
-
-    private static func makeClassifyRequest() -> VNClassifyImageRequest {
-        VNClassifyImageRequest()
+        }.value
     }
 }

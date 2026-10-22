@@ -6,3 +6,6 @@
 *.jpg binary
 *.jpeg binary
 *.pdf binary
+*.mlmodel binary
+*.mlpackage binary
+*.mlmodelc binary

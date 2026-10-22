@@ -21,3 +21,6 @@ DerivedData/
 # Windows
 Thumbs.db
 desktop.ini
+
+# Firebase client config: copy from the Firebase console onto the Mac (see firebase/README.md)
+GoogleService-Info.plist
