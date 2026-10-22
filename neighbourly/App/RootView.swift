@@ -29,7 +29,7 @@ struct RootView: View {
             MyListingsView(dependencies: dependencies)
                 .tabItem { Label("My Listings", systemImage: "tray.full") }
 
-            AccountView()
+            AccountView(listingRepository: dependencies.listingRepository)
                 .tabItem { Label("Account", systemImage: "person.crop.circle") }
         }
         .environment(auth)

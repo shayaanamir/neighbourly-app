@@ -30,7 +30,7 @@ struct MyListingsView: View {
                 .navigationTitle("My Listings")
                 .navigationDestination(for: Listing.self) { listing in
                     ListingDetailView(listing: listing, dependencies: dependencies) {
-                        Task { await viewModel.load() }
+                        Task { await viewModel.load(for: auth.user?.uid) }
                     }
                 }
                 .toolbar {
@@ -45,15 +45,16 @@ struct MyListingsView: View {
                         }
                     }
                 }
-                .task { await viewModel.load() }
+                .task(id: auth.user?.uid) { await viewModel.load(for: auth.user?.uid) }
                 .sheet(isPresented: $showCreate) {
                     CreateListingView(
                         repository: dependencies.listingRepository,
                         photoStore: dependencies.photoStore,
                         visionAssist: dependencies.visionAssist,
-                        defaultSellerName: auth.user?.displayName
+                        defaultSellerName: auth.user?.displayName,
+                        sellerID: auth.user?.uid
                     ) { _ in
-                        Task { await viewModel.load() }
+                        Task { await viewModel.load(for: auth.user?.uid) }
                     }
                 }
                 .sheet(item: $listingToEdit) { listing in
@@ -63,7 +64,7 @@ struct MyListingsView: View {
                         visionAssist: dependencies.visionAssist,
                         editing: listing
                     ) { _ in
-                        Task { await viewModel.load() }
+                        Task { await viewModel.load(for: auth.user?.uid) }
                     }
                 }
                 .confirmationDialog(
@@ -82,13 +83,13 @@ struct MyListingsView: View {
                 } message: { listing in
                     Text("“\(listing.title)” and its photos will be removed from this device.")
                 }
-                .confirmationDialog("Reset sample data?", isPresented: $showResetConfirmation, titleVisibility: .visible) {
-                    Button("Reset Everything", role: .destructive) {
-                        Task { _ = await viewModel.resetSampleData() }
+                .confirmationDialog("Reset the sample listings?", isPresented: $showResetConfirmation, titleVisibility: .visible) {
+                    Button("Reset Samples", role: .destructive) {
+                        Task { _ = await viewModel.resetSampleData(for: auth.user?.uid) }
                     }
                     Button("Cancel", role: .cancel) {}
                 } message: {
-                    Text("This replaces all listings on this device, including your own, with the original sample listings. It can't be undone.")
+                    Text("This restores the original sample listings on this device. Listings you posted to your account are not affected.")
                 }
         }
     }
@@ -110,7 +111,7 @@ struct MyListingsView: View {
             } actions: {
                 Button("Try Again") {
                     viewModel.dismissError()
-                    Task { await viewModel.load() }
+                    Task { await viewModel.load(for: auth.user?.uid) }
                 }
             }
         } else if !viewModel.hasLoaded {
@@ -148,7 +149,7 @@ struct MyListingsView: View {
                 }
             }
             .listStyle(.plain)
-            .refreshable { await viewModel.load() }
+            .refreshable { await viewModel.load(for: auth.user?.uid) }
         }
     }
 }

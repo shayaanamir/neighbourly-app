@@ -94,6 +94,8 @@ final class CreateListingViewModel {
     @ObservationIgnored private let repository: any ListingRepository
     @ObservationIgnored private let photoStore: PhotoStore
     @ObservationIgnored private let visionAssist: any VisionAssisting
+    /// Account posting the listing (ignored when editing: the original keeps its owner).
+    @ObservationIgnored private let sellerID: String?
     /// The listing being edited, or nil when creating a new one.
     @ObservationIgnored private let original: Listing?
     /// What the form looked like when it opened; `isDirty` compares against this.
@@ -108,12 +110,14 @@ final class CreateListingViewModel {
         photoStore: PhotoStore,
         visionAssist: any VisionAssisting = VisionAssistService(),
         editing original: Listing? = nil,
-        defaultSellerName: String? = nil
+        defaultSellerName: String? = nil,
+        sellerID: String? = nil
     ) {
         self.repository = repository
         self.photoStore = photoStore
         self.visionAssist = visionAssist
         self.original = original
+        self.sellerID = sellerID
 
         // Build the baseline from the listing itself (not from self's observable
         // properties), then copy it into the form fields.
@@ -161,6 +165,13 @@ final class CreateListingViewModel {
         let store = photoStore
         var loaded: [SelectedPhoto] = []
         for fileName in original.imageFileNames.prefix(Self.maxPhotos) {
+            // A shared listing's photo may not be cached on this device (for example after
+            // signing in on a new phone). Download it first: dropping it here would delete
+            // it from the cloud when the edit is saved.
+            if !store.fileExists(named: fileName),
+               let data = try? await repository.fetchPhoto(listingID: original.id, fileName: fileName) {
+                store.cache(data: data, named: fileName)
+            }
             let thumbnail = await Task.detached(priority: .userInitiated) {
                 store.image(named: fileName)?.preparingThumbnail(of: CGSize(width: 400, height: 400))
             }.value
@@ -371,6 +382,7 @@ final class CreateListingViewModel {
             latitude: original?.latitude,
             longitude: original?.longitude,
             areaName: areaName.trimmed.nilIfEmpty,
+            sellerID: original?.sellerID ?? sellerID,
             sellerName: sellerName.trimmed,
             sellerContact: sellerContact.trimmed.nilIfEmpty,
             createdAt: original?.createdAt ?? .now,

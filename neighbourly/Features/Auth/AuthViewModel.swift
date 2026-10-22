@@ -136,13 +136,15 @@ final class AuthViewModel {
         }
     }
 
-    func deleteAccount(password: String) async -> Bool {
+    /// `cleanup` removes the person's other data (their listings) after the password is
+    /// verified and before the account is deleted.
+    func deleteAccount(password: String, beforeDeletion cleanup: () async throws -> Void = {}) async -> Bool {
         if let problem = AuthValidation.existingPassword(password) {
             errorMessage = problem
             return false
         }
         return await perform {
-            try await service.deleteAccount(password: password)
+            try await service.deleteAccount(password: password, beforeDeletion: cleanup)
             apply(nil)
         }
     }
@@ -167,8 +169,10 @@ final class AuthViewModel {
         }
     }
 
+    /// Auth failures and cleanup failures (such as a listing that couldn't be removed) are
+    /// both written for people; anything else gets the generic message.
     private static func message(for error: Error) -> String {
-        (error as? AuthFailure ?? .unknown).errorDescription ?? AuthFailure.unknown.errorDescription ?? ""
+        (error as? LocalizedError)?.errorDescription ?? AuthFailure.unknown.errorDescription ?? ""
     }
 
     private static func clean(_ email: String) -> String {

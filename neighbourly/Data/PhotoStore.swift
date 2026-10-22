@@ -63,6 +63,29 @@ nonisolated final class PhotoStore: Sendable {
         return directory.appending(path: safeName, directoryHint: .notDirectory)
     }
 
+    // MARK: Cache for photos downloaded from the cloud
+
+    /// Cards use a small preview stored under "thumb-<name>"; the full photo is
+    /// fetched only when someone opens the listing.
+    func thumbnailFileName(for fileName: String) -> String {
+        "thumb-\(URL(fileURLWithPath: fileName).lastPathComponent)"
+    }
+
+    func saveThumbnail(_ data: Data, for fileName: String) {
+        cache(data: data, named: thumbnailFileName(for: fileName))
+    }
+
+    /// Writes already-compressed bytes (downloaded photos, thumbnails) as-is.
+    func cache(data: Data, named fileName: String) {
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try? data.write(to: url(for: fileName), options: .atomic)
+    }
+
+    /// The small preview if cached, else the full photo, else nil.
+    func thumbnailImage(for fileName: String) -> UIImage? {
+        image(named: thumbnailFileName(for: fileName)) ?? image(named: fileName)
+    }
+
     /// The stored image, or nil if the file is missing or unreadable.
     func image(named fileName: String) -> UIImage? {
         UIImage(contentsOfFile: url(for: fileName).path(percentEncoded: false))

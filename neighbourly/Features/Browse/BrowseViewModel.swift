@@ -26,6 +26,8 @@ final class BrowseViewModel {
     private(set) var isLoading = false
     private(set) var hasLoaded = false
     private(set) var errorMessage: String?
+    /// Set when only part of the data loaded (for example the server was unreachable).
+    private(set) var warning: String?
 
     var filters = ListingFilters()
     var displayMode: DisplayMode = .list
@@ -49,6 +51,7 @@ final class BrowseViewModel {
         }
         do {
             listings = try await repository.fetchListings()
+            warning = await repository.loadWarning()
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription

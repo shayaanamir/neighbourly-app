@@ -8,6 +8,9 @@
 import SwiftUI
 
 struct AccountView: View {
+    /// Used to remove the person's shared listings when they delete their account.
+    let listingRepository: any ListingRepository
+
     @Environment(AuthViewModel.self) private var auth
 
     @State private var showSignOutConfirmation = false
@@ -87,11 +90,18 @@ struct AccountView: View {
             Button("Delete Account", role: .destructive) {
                 let password = deletePassword
                 deletePassword = ""
-                Task { _ = await auth.deleteAccount(password: password) }
+                let userID = auth.user?.uid
+                Task {
+                    _ = await auth.deleteAccount(password: password) {
+                        if let userID {
+                            try await listingRepository.deleteAllListings(ownedBy: userID)
+                        }
+                    }
+                }
             }
             Button("Cancel", role: .cancel) { deletePassword = "" }
         } message: {
-            Text("This permanently deletes your account and profile. Enter your password to confirm. This can't be undone.")
+            Text("This permanently deletes your account, profile, and the listings you posted. Messages you sent may remain visible to the people you wrote to. Enter your password to confirm. This can't be undone.")
         }
     }
 }
@@ -100,14 +110,14 @@ struct AccountView: View {
     let service = MockAuthService()
     service.seedAccount(name: "Asha", email: "asha@example.com", password: "password1", signedIn: true)
     let auth = AuthViewModel(service: service, isCloudBacked: false)
-    return AccountView()
+    return AccountView(listingRepository: InMemoryListingRepository())
         .environment(auth)
         .task { await auth.start() }
 }
 
 #Preview("Guest") {
     let auth = AuthViewModel(service: MockAuthService())
-    return AccountView()
+    return AccountView(listingRepository: InMemoryListingRepository())
         .environment(auth)
         .task { await auth.start() }
 }

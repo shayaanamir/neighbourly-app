@@ -237,14 +237,29 @@ Firebase Storage on the free plan, so they are stored in Firestore:
 
 -   Each photo is downscaled and JPEG-compressed to **about 150 KB or
     less** (longest edge about 1,200 px) and saved as a Firestore
-    `Bytes` field in `listings/{id}/photos/{photoID}` (document limit is
-    1 MiB; keep well under it).
+    `Bytes` field in `listings/{id}/photos/{photoID}` together with an
+    `order` and the uploader's `ownerID` (document limit is 1 MiB; keep
+    well under it). Photos are uploaded before the listing document that
+    references them, which is why the photo rules check `ownerID` instead
+    of looking up the listing.
 -   A tiny **thumbnail** (about 300 px, 25 KB or less) is stored inline
     in the listing document so Browse cards load without downloading
     full photos.
 -   Detail screens fetch full photos lazily and cache them in
     `PhotoStore`.
 -   Limit shared listings to 5 photos.
+
+Prices are stored as whole paise (`priceMinor`, an integer) because
+Firestore has no decimal type and floating point would drift. Documents
+that are missing required fields or hold unknown enum values are skipped
+rather than failing the whole load.
+
+`CompositeListingRepository` routes each operation: sample (`isDemo`)
+listings stay in the local store, everything else goes to Firestore. If
+the cloud can't be reached, Browse shows the samples with a banner
+("Showing sample listings only. ...") instead of an error screen. When
+Firebase isn't configured (demo mode), a single `LocalListingRepository`
+is used so the app still works end to end.
 
 Repository responsibilities: load listings, add/update/delete (owner
 only), seed sample data locally on first launch, handle malformed or
@@ -408,11 +423,12 @@ conversations/{id}/messages/{id}    senderID, text, createdAt
 -   `users/{uid}`: anyone signed in can read `displayName`; only the
     owner can write their own document.
 -   `listings`: anyone (including guests) can read; create requires
-    `request.auth.uid == sellerID`; update/delete only by the owner;
-    field type and length limits (title, description, price,
-    photo count).
--   `listings/{id}/photos`: public read; write only by the listing's
-    owner; size-limited.
+    `request.auth.uid == sellerID`; update/delete only by the owner, who
+    cannot change `sellerID` or `createdAt`; field type and length limits
+    (title, description, price, photo count, coordinates, thumbnail
+    size). The rules file is `firebase/firestore.rules`.
+-   `listings/{id}/photos`: public read; create/update/delete only by the
+    uploader (`ownerID == request.auth.uid`); size-limited to 300 KB.
 -   `conversations`: read/write only if `request.auth.uid` is in
     `participantIDs`; create must list exactly the buyer and the
     listing's seller, and the buyer cannot be the seller.

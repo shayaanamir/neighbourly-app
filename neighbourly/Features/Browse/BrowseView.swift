@@ -36,6 +36,15 @@ struct BrowseView: View {
 
                 filterBar
 
+                if let warning = viewModel.warning {
+                    Label(warning, systemImage: "wifi.exclamationmark")
+                        .font(Theme.Typography.caption)
+                        .foregroundStyle(Theme.Colors.secondaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, Theme.Spacing.l)
+                        .padding(.bottom, Theme.Spacing.s)
+                }
+
                 content
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -56,7 +65,8 @@ struct BrowseView: View {
                     repository: dependencies.listingRepository,
                     photoStore: dependencies.photoStore,
                     visionAssist: dependencies.visionAssist,
-                    defaultSellerName: auth.user?.displayName
+                    defaultSellerName: auth.user?.displayName,
+                    sellerID: auth.user?.uid
                 ) { listing in
                     Task {
                         await viewModel.listingAdded()

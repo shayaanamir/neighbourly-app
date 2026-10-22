@@ -50,5 +50,14 @@ protocol AuthService {
     func sendPasswordReset(email: String) async throws
     func signOut() throws
     /// Permanently deletes the signed-in account after re-checking the password.
-    func deleteAccount(password: String) async throws
+    /// `cleanup` runs after the password check but before the account disappears, while
+    /// the person is still signed in, so it can remove data only they may delete. If it
+    /// throws, the account is left intact.
+    func deleteAccount(password: String, beforeDeletion cleanup: () async throws -> Void) async throws
+}
+
+extension AuthService {
+    func deleteAccount(password: String) async throws {
+        try await deleteAccount(password: password, beforeDeletion: {})
+    }
 }

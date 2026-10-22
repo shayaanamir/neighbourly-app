@@ -25,7 +25,9 @@ struct AppDependencies {
             .appending(path: "Neighbourly", directoryHint: .isDirectory)
         let photoStore = PhotoStore(directory: root.appending(path: "Photos", directoryHint: .isDirectory))
         return AppDependencies(
-            listingRepository: LocalListingRepository(directory: root, photoStore: photoStore),
+            listingRepository: ListingRepositoryFactory.makeLive(
+                root: root, photoStore: photoStore, isCloudBacked: auth.isCloudBacked
+            ),
             photoStore: photoStore,
             locationService: LocationService(),
             visionAssist: VisionAssistService(),

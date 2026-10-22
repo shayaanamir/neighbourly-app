@@ -89,10 +89,11 @@ final class MockAuthService: AuthService {
         setCurrent(nil)
     }
 
-    func deleteAccount(password: String) async throws {
+    func deleteAccount(password: String, beforeDeletion cleanup: () async throws -> Void) async throws {
         try await simulateLatency()
         guard let user = current, let email = user.email else { throw AuthFailure.notSignedIn }
         guard accounts[email]?.password == password else { throw AuthFailure.wrongCredentials }
+        try await cleanup()
         accounts[email] = nil
         setCurrent(nil)
     }

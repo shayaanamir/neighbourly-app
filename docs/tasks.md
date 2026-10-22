@@ -208,31 +208,36 @@ still browse.
 
 ## Phase 9 --- Shared listings in Firestore
 
--   [ ] Add `sellerID` to `Listing`; stop publishing `sellerContact` for
+-   [x] Add `sellerID` to `Listing`; stop publishing `sellerContact` for
     shared listings; define what happens to pre-account local listings
-    (discard or re-post; sample reset clears them).
+    (discard or re-post; sample reset clears them). *(Decision: the model
+    keeps the legacy `sellerContact` locally, the form no longer asks for
+    it, and listings saved before accounts are hidden from Browse because
+    they have no owner. "Reset Samples" deletes them from disk.)*
 -   [ ] Write `firebase/firestore.rules` for `users` and `listings`
     (public read, owner-only write, field and size limits) and publish
-    them in the console.
--   [ ] Implement `FirestoreMapping` (Listing to/from documents,
+    them in the console. *(Rules file written; publishing it in the
+    console is a manual step on the Mac.)*
+-   [x] Implement `FirestoreMapping` (Listing to/from documents,
     tolerant of missing fields).
--   [ ] Implement `FirestoreListingRepository` conforming to
+-   [x] Implement `FirestoreListingRepository` conforming to
     `ListingRepository` (limited queries, newest first).
--   [ ] Compress photos to about 150 KB or less each, store them as
+-   [x] Compress photos to about 150 KB or less each, store them as
     `Bytes` in `listings/{id}/photos/{n}`, and store a small thumbnail
     (about 25 KB or less) inline on the listing document; cap shared
     listings at 5 photos.
--   [ ] Fetch full photos lazily on the detail screen and cache them in
+-   [x] Fetch full photos lazily on the detail screen and cache them in
     `PhotoStore`; keep cards on thumbnails only.
--   [ ] Merge local demo listings with shared listings in Browse; mark
+-   [x] Merge local demo listings with shared listings in Browse; mark
     demo listings clearly.
--   [ ] Enforce ownership in the UI (edit/delete only for the owner) and
+-   [x] Enforce ownership in the UI (edit/delete only for the owner) and
     in the rules; My Listings filters by `sellerID`.
--   [ ] Enable Firestore offline persistence; show an offline banner and
-    friendly errors (including quota exhausted).
--   [ ] Delete a listing's photos subcollection when the listing is
+-   [x] Enable Firestore offline persistence (on by default in the iOS
+    SDK); show an offline banner and friendly errors (including quota
+    exhausted).
+-   [x] Delete a listing's photos subcollection when the listing is
     deleted; delete a user's listings and profile on account deletion.
--   [ ] Add tests with an in-memory fake: ownership rules, mapping
+-   [x] Add tests with an in-memory fake: ownership rules, mapping
     round-trip, photo size limits, demo/shared merge ordering.
 -   [ ] Optional: test the rules with the Firebase Emulator Suite.
 

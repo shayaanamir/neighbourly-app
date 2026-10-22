@@ -18,11 +18,18 @@ final class MyListingsViewModel {
         self.repository = repository
     }
 
-    /// Loads listings created on this device (sample/demo listings are not "mine").
-    func load() async {
+    /// Loads the listings posted by this account. Sample listings and other people's
+    /// listings are never "mine"; with no signed-in user the list is empty.
+    func load(for userID: String?) async {
+        guard let userID else {
+            listings = []
+            errorMessage = nil
+            hasLoaded = true
+            return
+        }
         do {
             let all = try await repository.fetchListings()
-            listings = all.filter { !$0.isDemo }
+            listings = all.filter { !$0.isDemo && $0.sellerID == userID }
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
@@ -42,11 +49,11 @@ final class MyListingsViewModel {
         }
     }
 
-    /// Replaces every listing on this device (including your own) with the sample data.
-    func resetSampleData() async -> Bool {
+    /// Resets the local sample data (shared listings in the cloud are not touched).
+    func resetSampleData(for userID: String?) async -> Bool {
         do {
             try await repository.resetToSampleData()
-            await load()
+            await load(for: userID)
             return errorMessage == nil
         } catch {
             errorMessage = error.localizedDescription

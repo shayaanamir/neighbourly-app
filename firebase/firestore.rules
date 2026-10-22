@@ -1,0 +1,116 @@
+rules_version = '2';
+
+// Neighbourly security rules (Cloud Firestore, free Spark plan).
+//
+// The app is a client-only prototype, so these rules are the real access control:
+// a modified app or a script can send any request, and only these rules stop it.
+// Publish them in the Firebase console (Firestore -> Rules) after every change.
+//
+// Phase 9 covers `users` and `listings`. Phase 10 adds `conversations`.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isUser(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // ---------------------------------------------------------------- users
+    // A small public profile so people can see who they are talking to.
+    // Emails are never stored here.
+    match /users/{uid} {
+      allow read: if signedIn();
+
+      allow create, update: if isUser(uid)
+        && request.resource.data.keys().hasOnly(['displayName', 'createdAt'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 2
+        && request.resource.data.displayName.size() <= 40;
+
+      allow delete: if isUser(uid);
+    }
+
+    // ------------------------------------------------------------- listings
+    function validListing(data) {
+      return data.keys().hasOnly([
+          'title', 'description', 'category', 'mode', 'priceMinor', 'condition',
+          'photoIDs', 'latitude', 'longitude', 'areaName', 'sellerID', 'sellerName',
+          'createdAt', 'thumbnail'
+        ])
+        && data.keys().hasAll([
+          'title', 'category', 'mode', 'condition', 'photoIDs', 'sellerID',
+          'sellerName', 'createdAt'
+        ])
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 80
+        && data.get('description', '') is string && data.get('description', '').size() <= 1000
+        && data.category in ['electronics', 'books', 'furniture', 'clothing', 'home', 'sports', 'toys', 'other']
+        && data.mode in ['sell', 'exchange', 'donate']
+        && data.condition in ['new', 'likeNew', 'good', 'fair']
+        // Sell listings need a non-negative whole-paise price; others must not have one.
+        && (data.mode == 'sell'
+              ? (data.priceMinor is int && data.priceMinor >= 0 && data.priceMinor <= 100000000)
+              : !('priceMinor' in data))
+        && data.photoIDs is list && data.photoIDs.size() <= 5
+        && data.sellerID is string
+        && data.sellerName is string && data.sellerName.size() >= 1 && data.sellerName.size() <= 80
+        && data.createdAt is timestamp
+        // Coordinates come as a valid pair or not at all.
+        && (('latitude' in data) == ('longitude' in data))
+        && (!('latitude' in data)
+              || (data.latitude is number && data.latitude >= -90 && data.latitude <= 90
+                  && data.longitude is number && data.longitude >= -180 && data.longitude <= 180))
+        && (!('areaName' in data) || (data.areaName is string && data.areaName.size() <= 80))
+        && (!('thumbnail' in data) || (data.thumbnail is bytes && data.thumbnail.size() <= 40000));
+    }
+
+    match /listings/{listingId} {
+      // Anyone, including guests, can browse.
+      allow read: if true;
+
+      // You can only post as yourself.
+      allow create: if signedIn()
+        && request.resource.data.sellerID == request.auth.uid
+        && validListing(request.resource.data);
+
+      // Only the owner can change or remove it, and cannot hand it to someone else
+      // or rewrite when it was posted.
+      allow update: if isUser(resource.data.sellerID)
+        && request.resource.data.sellerID == resource.data.sellerID
+        && request.resource.data.createdAt == resource.data.createdAt
+        && validListing(request.resource.data);
+
+      allow delete: if isUser(resource.data.sellerID);
+
+      // Full-size photos (about 150 KB each) live in documents because Cloud Storage
+      // needs a billing plan. Each carries its uploader so rules don't depend on the
+      // listing document existing yet (photos are uploaded first).
+      match /photos/{photoId} {
+        allow read: if true;
+
+        allow create: if signedIn()
+          && request.resource.data.keys().hasOnly(['data', 'order', 'ownerID'])
+          && request.resource.data.ownerID == request.auth.uid
+          && request.resource.data.data is bytes
+          && request.resource.data.data.size() <= 300000
+          && request.resource.data.order is int;
+
+        allow update: if isUser(resource.data.ownerID)
+          && request.resource.data.ownerID == resource.data.ownerID
+          && request.resource.data.keys().hasOnly(['data', 'order', 'ownerID'])
+          && request.resource.data.data is bytes
+          && request.resource.data.data.size() <= 300000;
+
+        allow delete: if isUser(resource.data.ownerID);
+      }
+    }
+
+    // Everything else stays closed until a rule above opens it.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

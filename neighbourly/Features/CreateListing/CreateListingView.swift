@@ -23,6 +23,7 @@ struct CreateListingView: View {
         visionAssist: any VisionAssisting,
         editing listing: Listing? = nil,
         defaultSellerName: String? = nil,
+        sellerID: String? = nil,
         onSaved: @escaping (Listing) -> Void
     ) {
         _viewModel = State(initialValue: CreateListingViewModel(
@@ -30,7 +31,8 @@ struct CreateListingView: View {
             photoStore: photoStore,
             visionAssist: visionAssist,
             editing: listing,
-            defaultSellerName: defaultSellerName
+            defaultSellerName: defaultSellerName,
+            sellerID: sellerID
         ))
         self.onSaved = onSaved
     }
@@ -229,15 +231,10 @@ struct CreateListingView: View {
                 errorText(viewModel.visibleErrors.sellerName)
             }
 
-            TextField("Email or phone (optional)", text: $viewModel.sellerContact)
-                .textContentType(.emailAddress)
-                .keyboardType(.emailAddress)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
         } header: {
             Text("Seller")
         } footer: {
-            Text("Use a general area, not your street address. Contact details stay on this device.")
+            Text("Use a general area, not your street address. Buyers contact you through in-app chat, so there is no need to share an email or phone number.")
         }
     }
 

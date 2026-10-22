@@ -16,13 +16,17 @@ nonisolated struct Listing: Identifiable, Codable, Hashable, Sendable {
     /// Required for `.sell`; must be nil for `.exchange` and `.donate`.
     var price: Decimal?
     var condition: ItemCondition
+    /// Photo file names. For shared listings these double as the photo document IDs in the cloud.
     var imageFileNames: [String]
     var latitude: Double?
     var longitude: Double?
     /// User-entered neighbourhood / locality label, never a street address.
     var areaName: String?
+    /// Account ID (Firebase UID) of the person who posted it. nil for sample listings
+    /// and for listings saved before accounts existed.
+    var sellerID: String?
     var sellerName: String
-    /// Optional; stays on device and is only shown on user action.
+    /// Legacy and local only: never uploaded. Chat replaces published contact details.
     var sellerContact: String?
     var createdAt: Date
     /// True for seeded sample content, false for listings created on this device.
@@ -40,6 +44,7 @@ nonisolated struct Listing: Identifiable, Codable, Hashable, Sendable {
         latitude: Double? = nil,
         longitude: Double? = nil,
         areaName: String? = nil,
+        sellerID: String? = nil,
         sellerName: String,
         sellerContact: String? = nil,
         createdAt: Date = .now,
@@ -56,6 +61,7 @@ nonisolated struct Listing: Identifiable, Codable, Hashable, Sendable {
         self.latitude = latitude
         self.longitude = longitude
         self.areaName = areaName
+        self.sellerID = sellerID
         self.sellerName = sellerName
         self.sellerContact = sellerContact
         self.createdAt = createdAt

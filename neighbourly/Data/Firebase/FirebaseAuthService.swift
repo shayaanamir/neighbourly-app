@@ -97,13 +97,17 @@ final class FirebaseAuthService: AuthService {
         }
     }
 
-    func deleteAccount(password: String) async throws {
+    func deleteAccount(password: String, beforeDeletion cleanup: () async throws -> Void) async throws {
         guard let user = Auth.auth().currentUser, let email = user.email else {
             throw AuthFailure.notSignedIn
         }
         do {
             let credential = EmailAuthProvider.credential(withEmail: email, password: password)
             try await user.reauthenticate(with: credential)
+
+            // The caller removes data only this person may delete (their listings) while
+            // they are still signed in. A failure here aborts, leaving the account intact.
+            try await cleanup()
 
             // Remove the public profile first; the Auth account goes last.
             try? await Firestore.firestore().collection("users").document(user.uid).delete()

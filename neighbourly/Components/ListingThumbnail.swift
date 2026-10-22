@@ -41,7 +41,8 @@ struct ListingThumbnail: View {
         guard let fileName else { return nil }
         let store = photoStore
         return await Task.detached(priority: .utility) {
-            store.image(named: fileName)?.preparingThumbnail(of: CGSize(width: 300, height: 300))
+            // Cloud listings only have a small cached preview until opened.
+            store.thumbnailImage(for: fileName)?.preparingThumbnail(of: CGSize(width: 300, height: 300))
         }.value
     }
 }

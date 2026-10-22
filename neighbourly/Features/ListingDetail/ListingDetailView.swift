@@ -21,6 +21,7 @@ struct ListingDetailView: View {
     @State private var errorMessage: String?
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(AuthViewModel.self) private var auth
 
     init(listing: Listing, dependencies: AppDependencies, onChanged: @escaping () -> Void = {}) {
         _listing = State(initialValue: listing)
@@ -28,7 +29,12 @@ struct ListingDetailView: View {
         self.onChanged = onChanged
     }
 
-    private var isOwnListing: Bool { !listing.isDemo }
+    /// Only the account that posted a listing can edit or delete it (the database rules
+    /// enforce the same thing; this just hides buttons that wouldn't work).
+    private var isOwnListing: Bool {
+        guard let sellerID = listing.sellerID, let uid = auth.user?.uid else { return false }
+        return sellerID == uid
+    }
 
     var body: some View {
         ScrollView {
@@ -108,7 +114,12 @@ struct ListingDetailView: View {
         } else {
             TabView {
                 ForEach(Array(listing.imageFileNames.enumerated()), id: \.element) { index, fileName in
-                    StoredPhotoView(fileName: fileName, photoStore: dependencies.photoStore)
+                    StoredPhotoView(
+                        fileName: fileName,
+                        listingID: listing.id,
+                        photoStore: dependencies.photoStore,
+                        repository: dependencies.listingRepository
+                    )
                         .accessibilityLabel("Photo \(index + 1) of \(listing.imageFileNames.count)")
                 }
             }
@@ -227,7 +238,9 @@ struct ListingDetailView: View {
 }
 
 #Preview {
+    let dependencies = AppDependencies.preview()
     NavigationStack {
-        ListingDetailView(listing: SampleListings.make()[0], dependencies: .preview())
+        ListingDetailView(listing: SampleListings.make()[0], dependencies: dependencies)
     }
+    .environment(AuthViewModel(service: dependencies.authService, isCloudBacked: false))
 }
