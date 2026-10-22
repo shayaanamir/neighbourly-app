@@ -11,6 +11,7 @@ struct MyListingsView: View {
     let dependencies: AppDependencies
 
     @State private var viewModel: MyListingsViewModel
+    @Environment(AuthViewModel.self) private var auth
     @State private var showCreate = false
     @State private var listingToEdit: Listing?
     @State private var listingToDelete: Listing?
@@ -34,7 +35,7 @@ struct MyListingsView: View {
                 }
                 .toolbar {
                     ToolbarItem(placement: .primaryAction) {
-                        Button { showCreate = true } label: {
+                        Button { auth.requireSignIn { showCreate = true } } label: {
                             Label("Add Listing", systemImage: "plus")
                         }
                     }
@@ -49,7 +50,8 @@ struct MyListingsView: View {
                     CreateListingView(
                         repository: dependencies.listingRepository,
                         photoStore: dependencies.photoStore,
-                        visionAssist: dependencies.visionAssist
+                        visionAssist: dependencies.visionAssist,
+                        defaultSellerName: auth.user?.displayName
                     ) { _ in
                         Task { await viewModel.load() }
                     }
@@ -93,7 +95,14 @@ struct MyListingsView: View {
 
     @ViewBuilder
     private var content: some View {
-        if let message = viewModel.errorMessage {
+        if auth.session == .loading {
+            ProgressView()
+        } else if !auth.isSignedIn {
+            SignInPromptView(
+                title: "Sign in to see your listings",
+                message: "Listings you post live in your account, where you can edit or delete them."
+            )
+        } else if let message = viewModel.errorMessage {
             ContentUnavailableView {
                 Label("Something went wrong", systemImage: "exclamationmark.triangle")
             } description: {
@@ -112,7 +121,7 @@ struct MyListingsView: View {
             } description: {
                 Text("Items you add on this device will show up here, where you can edit or delete them.")
             } actions: {
-                Button("Add a Listing") { showCreate = true }
+                Button("Add a Listing") { auth.requireSignIn { showCreate = true } }
                     .buttonStyle(.borderedProminent)
             }
         } else {
@@ -145,5 +154,7 @@ struct MyListingsView: View {
 }
 
 #Preview {
-    MyListingsView(dependencies: .preview())
+    let dependencies = AppDependencies.preview()
+    MyListingsView(dependencies: dependencies)
+        .environment(AuthViewModel(service: dependencies.authService, isCloudBacked: false))
 }

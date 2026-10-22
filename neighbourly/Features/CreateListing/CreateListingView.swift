@@ -22,13 +22,15 @@ struct CreateListingView: View {
         photoStore: PhotoStore,
         visionAssist: any VisionAssisting,
         editing listing: Listing? = nil,
+        defaultSellerName: String? = nil,
         onSaved: @escaping (Listing) -> Void
     ) {
         _viewModel = State(initialValue: CreateListingViewModel(
             repository: repository,
             photoStore: photoStore,
             visionAssist: visionAssist,
-            editing: listing
+            editing: listing,
+            defaultSellerName: defaultSellerName
         ))
         self.onSaved = onSaved
     }

@@ -175,29 +175,31 @@ book photo suggests Books, with no network and no API key.
     `Package.resolved`.
 -   [ ] Create the Firestore database (production mode, nearby region)
     and add `firebase/README.md` documenting the setup steps.
--   [ ] Add `.gitignore` entry for `GoogleService-Info.plist`.
--   [ ] Define `AppUser` and the `AuthService` protocol.
--   [ ] Implement `FirebaseAuthService` (sign up with display name, sign
+-   [x] Add `.gitignore` entry for `GoogleService-Info.plist`.
+-   [x] Define `AppUser` and the `AuthService` protocol.
+-   [x] Implement `FirebaseAuthService` (sign up with display name, sign
     in, sign out, password reset, delete account with re-authentication)
-    and `MockAuthService`.
--   [ ] Call `FirebaseApp.configure()` once at launch; keep Firebase
+    and `MockAuthService`. *(Written but not yet compiled against the
+    Firebase SDK: the file is guarded by `#if canImport(FirebaseAuth)`,
+    so the app builds and runs in demo mode until the package is added.)*
+-   [x] Call `FirebaseApp.configure()` once at launch; keep Firebase
     imports inside `Data/Firebase`.
--   [ ] Add `AuthViewModel` exposing session state (signed out, signing
+-   [x] Add `AuthViewModel` exposing session state (signed out, signing
     in, signed in, error) driven by auth state changes.
--   [ ] Add `AuthValidation` (email format, password at least 8
+-   [x] Add `AuthValidation` (email format, password at least 8
     characters, display name 2--40 characters, matching confirmation)
     and map Firebase errors to friendly messages (wrong password, email
     in use, weak password, network failure, too many attempts).
--   [ ] Build Sign In, Sign Up, and Forgot Password screens with inline
+-   [x] Build Sign In, Sign Up, and Forgot Password screens with inline
     validation, loading and error states, and Dynamic Type support.
--   [ ] Build the Account tab: name, email, sign out, delete account
+-   [x] Build the Account tab: name, email, sign out, delete account
     (confirmation plus password).
--   [ ] Keep guest browsing; gate Add Listing, My Listings, Messages, and
+-   [x] Keep guest browsing; gate Add Listing, My Listings, Messages, and
     Message Seller behind a sign-in prompt that returns the user to what
     they were doing.
--   [ ] Create a `users/{uid}` profile document with the display name on
+-   [x] Create a `users/{uid}` profile document with the display name on
     sign-up; never write the email or password to Firestore.
--   [ ] Add tests: validators, error mapping, and `AuthViewModel`
+-   [x] Add tests: validators, error mapping, and `AuthViewModel`
     transitions with `MockAuthService`.
 
 **Acceptance:** a user can sign up, sign in, sign out, reset a password,

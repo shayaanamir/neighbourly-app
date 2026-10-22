@@ -10,6 +10,7 @@ import SwiftUI
 
 struct BrowseView: View {
     @State private var viewModel: BrowseViewModel
+    @Environment(AuthViewModel.self) private var auth
     @State private var showCreateListing = false
     @State private var savedBannerTitle: String?
     private let dependencies: AppDependencies
@@ -44,7 +45,7 @@ struct BrowseView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
-                        showCreateListing = true
+                        auth.requireSignIn { showCreateListing = true }
                     } label: {
                         Label("Add Listing", systemImage: "plus")
                     }
@@ -54,7 +55,8 @@ struct BrowseView: View {
                 CreateListingView(
                     repository: dependencies.listingRepository,
                     photoStore: dependencies.photoStore,
-                    visionAssist: dependencies.visionAssist
+                    visionAssist: dependencies.visionAssist,
+                    defaultSellerName: auth.user?.displayName
                 ) { listing in
                     Task {
                         await viewModel.listingAdded()
@@ -160,7 +162,7 @@ struct BrowseView: View {
             } description: {
                 Text("Items to sell, exchange, or donate in your neighbourhood will appear here.")
             } actions: {
-                Button("Add a listing") { showCreateListing = true }
+                Button("Add a listing") { auth.requireSignIn { showCreateListing = true } }
                 Button("Load sample listings") {
                     Task { await viewModel.resetSampleData() }
                 }
@@ -213,4 +215,5 @@ struct BrowseView: View {
 #Preview {
     let dependencies = AppDependencies.preview()
     BrowseView(dependencies: dependencies)
+        .environment(AuthViewModel(service: dependencies.authService, isCloudBacked: false))
 }

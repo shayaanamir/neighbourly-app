@@ -107,7 +107,8 @@ final class CreateListingViewModel {
         repository: any ListingRepository,
         photoStore: PhotoStore,
         visionAssist: any VisionAssisting = VisionAssistService(),
-        editing original: Listing? = nil
+        editing original: Listing? = nil,
+        defaultSellerName: String? = nil
     ) {
         self.repository = repository
         self.photoStore = photoStore
@@ -116,7 +117,7 @@ final class CreateListingViewModel {
 
         // Build the baseline from the listing itself (not from self's observable
         // properties), then copy it into the form fields.
-        let initial = Self.initialSnapshot(for: original)
+        let initial = Self.initialSnapshot(for: original, defaultSellerName: defaultSellerName)
         baseline = initial
         title = initial.title
         description = initial.description
@@ -129,7 +130,7 @@ final class CreateListingViewModel {
         sellerContact = initial.sellerContact
     }
 
-    private static func initialSnapshot(for original: Listing?) -> Snapshot {
+    private static func initialSnapshot(for original: Listing?, defaultSellerName: String?) -> Snapshot {
         Snapshot(
             title: original?.title ?? "",
             description: original?.description ?? "",
@@ -138,7 +139,7 @@ final class CreateListingViewModel {
             condition: original?.condition ?? .good,
             priceInput: original?.price.map(priceInput(from:)) ?? "",
             areaName: original?.areaName ?? "",
-            sellerName: original?.sellerName ?? defaultSellerName,
+            sellerName: original?.sellerName ?? defaultSellerName ?? Self.defaultSellerName,
             sellerContact: original?.sellerContact ?? "",
             photoIDs: []
         )
