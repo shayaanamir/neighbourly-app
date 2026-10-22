@@ -70,10 +70,24 @@ struct SuggestionBuilderTests {
     }
 
     @Test func labelsAreSortedAndCapped() {
-        let labels = (0..<10).map { ClassifiedLabel(identifier: "label_\($0)", confidence: 0.2 + Float($0) / 20) }
+        let identifiers = ["book", "chair", "laptop", "jacket", "kettle", "football", "teddy_bear"]
+        let labels = identifiers.enumerated().map {
+            ClassifiedLabel(identifier: $0.element, confidence: 0.2 + Float($0.offset) / 20)
+        }
         let result = SuggestionBuilder.make(labels: labels, recognizedText: [])
         #expect(result.labels.count == SuggestionBuilder.maxLabels)
-        #expect(result.labels.first == "Label 9")
+        #expect(result.labels.first == "Teddy bear")
+    }
+
+    @Test func unrelatedSceneLabelsAreNotShown() {
+        let labels = [
+            ClassifiedLabel(identifier: "night_sky", confidence: 0.9),
+            ClassifiedLabel(identifier: "moon", confidence: 0.8),
+            ClassifiedLabel(identifier: "book", confidence: 0.3),
+        ]
+        let result = SuggestionBuilder.make(labels: labels, recognizedText: [])
+        #expect(result.labels == ["Book"])
+        #expect(result.category == .books)
     }
 
     @Test func textLinesAreTrimmedFilteredAndDeduplicated() {

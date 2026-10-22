@@ -13,7 +13,8 @@ import Foundation
 nonisolated struct ImageSuggestions: Equatable, Sendable {
     /// Best-guess category; `.other` when no label maps to a known category.
     var category: ListingCategory
-    /// Human-readable top labels, most confident first.
+    /// Human-readable labels that point at a known category, most confident first.
+    /// Unrelated scene labels (sky, outdoor, ...) are left out on purpose.
     var labels: [String]
     /// Text found in the image, one entry per recognised line.
     var textLines: [String]
@@ -151,7 +152,10 @@ nonisolated enum SuggestionBuilder {
 
         return ImageSuggestions(
             category: category,
-            labels: confident.prefix(maxLabels).map { ListingCategoryMapper.displayName(for: $0.identifier) },
+            labels: confident
+                .filter { ListingCategoryMapper.category(for: [$0]) != .other }
+                .prefix(maxLabels)
+                .map { ListingCategoryMapper.displayName(for: $0.identifier) },
             textLines: textLines,
             classificationUnavailable: !classificationAvailable
         )
