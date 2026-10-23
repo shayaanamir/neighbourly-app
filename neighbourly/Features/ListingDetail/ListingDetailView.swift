@@ -84,7 +84,8 @@ struct ListingDetailView: View {
                 repository: dependencies.listingRepository,
                 photoStore: dependencies.photoStore,
                 visionAssist: dependencies.visionAssist,
-                editing: listing
+                editing: listing,
+                locationProvider: dependencies.locationService
             ) { updated in
                 listing = updated
                 onChanged()

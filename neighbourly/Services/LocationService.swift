@@ -3,14 +3,61 @@
 //  neighbourly
 //
 //  Small Core Location wrapper. Permission is requested only when the user
-//  taps "Use my location"; browsing never depends on it.
+//  taps "Use my location" (on the map, or when creating a listing); browsing never
+//  depends on it.
 //
 
 import CoreLocation
 import Observation
 
+/// A latitude/longitude pair.
+nonisolated struct Coordinate: Equatable, Sendable {
+    var latitude: Double
+    var longitude: Double
+
+    /// Listings are public, so a seller's exact position is never shared: coordinates are
+    /// rounded to two decimal places, about 1 km, enough for "near Powai" but not a doorstep.
+    func roundedForSharing() -> Coordinate {
+        Coordinate(
+            latitude: (latitude * 100).rounded() / 100,
+            longitude: (longitude * 100).rounded() / 100
+        )
+    }
+}
+
+nonisolated enum LocationError: LocalizedError, Equatable, Sendable {
+    case denied
+    case unavailable
+    /// A location request is already running.
+    case busy
+
+    var errorDescription: String? {
+        switch self {
+        case .denied: "Location access is off for Neighbourly."
+        case .unavailable: "Your location couldn't be found right now. You can type your area instead."
+        case .busy: "Still finding your location…"
+        }
+    }
+}
+
+/// Where the current location comes from. The form depends on this, not on Core Location,
+/// so tests can substitute a stand-in.
+@MainActor
+protocol LocationProviding {
+    /// The device's current position. May show the system permission prompt, so call it only
+    /// in response to a tap. Throws `LocationError` if access is denied or no fix is found.
+    func currentCoordinate() async throws -> Coordinate
+
+    /// A neighbourhood or town name for the position, if one can be looked up.
+    func placeName(for coordinate: Coordinate) async -> String?
+}
+
+extension LocationProviding {
+    func placeName(for coordinate: Coordinate) async -> String? { nil }
+}
+
 @Observable
-final class LocationService: NSObject, CLLocationManagerDelegate {
+final class LocationService: NSObject, CLLocationManagerDelegate, LocationProviding {
     enum State: Equatable {
         case idle
         case requesting
@@ -22,6 +69,9 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     private(set) var state: State = .idle
 
     @ObservationIgnored private let manager = CLLocationManager()
+    /// Someone waiting in `currentCoordinate()` for the next result.
+    @ObservationIgnored private var waiter: CheckedContinuation<Coordinate, any Error>?
+    @ObservationIgnored private var timeout: Task<Void, Never>?
 
     override init() {
         super.init()
@@ -33,21 +83,67 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     func requestCurrentLocation() {
         switch manager.authorizationStatus {
         case .notDetermined:
-            state = .requesting
+            setState(.requesting)
             manager.requestWhenInUseAuthorization()
         case .denied, .restricted:
-            state = .denied
+            setState(.denied)
         default:
-            state = .requesting
+            setState(.requesting)
             manager.requestLocation()
         }
+    }
+
+    // MARK: LocationProviding
+
+    func currentCoordinate() async throws -> Coordinate {
+        guard waiter == nil else { throw LocationError.busy }
+        return try await withCheckedThrowingContinuation { continuation in
+            waiter = continuation
+            // requestLocation can occasionally never answer; don't leave the form spinning.
+            timeout = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(20))
+                guard !Task.isCancelled else { return }
+                self?.setState(.unavailable)
+            }
+            requestCurrentLocation()
+        }
+    }
+
+    func placeName(for coordinate: Coordinate) async -> String? {
+        let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        guard let placemark = try? await CLGeocoder().reverseGeocodeLocation(location).first else { return nil }
+        return placemark.subLocality ?? placemark.locality
     }
 
     /// Clears a denied/unavailable message after the user has seen it.
     func dismissMessage() {
         if state == .denied || state == .unavailable {
-            state = .idle
+            setState(.idle)
         }
+    }
+
+    /// Every state change goes through here so a waiting `currentCoordinate()` call is
+    /// answered exactly once.
+    private func setState(_ newState: State) {
+        state = newState
+        switch newState {
+        case .located(let latitude, let longitude):
+            finishWaiting(.success(Coordinate(latitude: latitude, longitude: longitude)))
+        case .denied:
+            finishWaiting(.failure(LocationError.denied))
+        case .unavailable:
+            finishWaiting(.failure(LocationError.unavailable))
+        case .idle, .requesting:
+            break
+        }
+    }
+
+    private func finishWaiting(_ result: Result<Coordinate, any Error>) {
+        timeout?.cancel()
+        timeout = nil
+        guard let waiter else { return }
+        self.waiter = nil
+        waiter.resume(with: result)
     }
 
     // MARK: - CLLocationManagerDelegate
@@ -64,14 +160,14 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         let longitude = coordinate.longitude
         Task { @MainActor in
             guard self.state == .requesting else { return }
-            self.state = .located(latitude: latitude, longitude: longitude)
+            self.setState(.located(latitude: latitude, longitude: longitude))
         }
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: any Error) {
         Task { @MainActor in
             guard self.state == .requesting else { return }
-            self.state = .unavailable
+            self.setState(.unavailable)
         }
     }
 
@@ -83,7 +179,7 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         case .authorizedWhenInUse, .authorizedAlways:
             manager.requestLocation()
         case .denied, .restricted:
-            state = .denied
+            setState(.denied)
         default:
             break
         }

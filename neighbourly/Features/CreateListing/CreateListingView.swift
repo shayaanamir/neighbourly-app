@@ -15,6 +15,7 @@ struct CreateListingView: View {
     @State private var showDiscardDialog = false
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     private let onSaved: (Listing) -> Void
 
     init(
@@ -24,6 +25,7 @@ struct CreateListingView: View {
         editing listing: Listing? = nil,
         defaultSellerName: String? = nil,
         sellerID: String? = nil,
+        locationProvider: (any LocationProviding)? = nil,
         onSaved: @escaping (Listing) -> Void
     ) {
         _viewModel = State(initialValue: CreateListingViewModel(
@@ -32,7 +34,8 @@ struct CreateListingView: View {
             visionAssist: visionAssist,
             editing: listing,
             defaultSellerName: defaultSellerName,
-            sellerID: sellerID
+            sellerID: sellerID,
+            location: locationProvider
         ))
         self.onSaved = onSaved
     }
@@ -44,6 +47,7 @@ struct CreateListingView: View {
                 ImageAssistReviewView(viewModel: viewModel)
                 detailsSection
                 offerSection
+                locationSection
                 sellerSection
             }
             .warmForm()
@@ -225,10 +229,65 @@ struct CreateListingView: View {
         .listRowBackground(Theme.Colors.cardBackground)
     }
 
-    private var sellerSection: some View {
+    private var locationSection: some View {
         Section {
             TextField("Area or neighbourhood (optional)", text: $viewModel.areaName)
 
+            if viewModel.hasLocation {
+                HStack {
+                    Label("Shown on the map near you", systemImage: "mappin.circle.fill")
+                        .foregroundStyle(Theme.Colors.donate)
+                    Spacer()
+                    Button("Remove") { viewModel.clearLocation() }
+                        .buttonStyle(.warmSoft)
+                }
+            }
+
+            if viewModel.canUseLocation {
+                Button {
+                    Task { await viewModel.useCurrentLocation() }
+                } label: {
+                    HStack {
+                        Label(
+                            viewModel.hasLocation ? "Update from my location" : "Use my current location",
+                            systemImage: "location.fill"
+                        )
+                        if viewModel.isLocating {
+                            Spacer()
+                            ProgressView()
+                        }
+                    }
+                }
+                .disabled(viewModel.isLocating)
+
+                if case .failed(let error) = viewModel.locationStatus {
+                    VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+                        errorText(error.errorDescription)
+                        if error == .denied {
+                            Button("Open Settings") {
+                                if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+                            }
+                            .buttonStyle(.warmSoft)
+                        }
+                    }
+                }
+
+                if viewModel.areaFilledFromLocation {
+                    Label("Area filled in from your location. Edit it if it isn't right.", systemImage: "sparkles")
+                        .font(Theme.Typography.caption)
+                        .foregroundStyle(Theme.Colors.secondaryText)
+                }
+            }
+        } header: {
+            Text("Location")
+        } footer: {
+            Text("Optional. Pin your listing on the map near you. Neighbourly rounds it to about 1 km, so your exact address stays private, and only asks for your location when you tap the button.")
+        }
+        .listRowBackground(Theme.Colors.cardBackground)
+    }
+
+    private var sellerSection: some View {
+        Section {
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 TextField("Your name", text: $viewModel.sellerName)
                     .textContentType(.name)

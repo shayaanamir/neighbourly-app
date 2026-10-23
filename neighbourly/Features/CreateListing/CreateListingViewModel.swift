@@ -53,6 +53,14 @@ final class CreateListingViewModel {
         var sellerName: String
         var sellerContact: String
         var photoIDs: [SelectedPhoto.ID]
+        var latitude: Double?
+        var longitude: Double?
+    }
+
+    enum LocationStatus: Equatable {
+        case idle
+        case locating
+        case failed(LocationError)
     }
 
     /// Progress of the optional "Suggest details" on-device analysis.
@@ -81,6 +89,10 @@ final class CreateListingViewModel {
     var areaName = ""
     var sellerName = CreateListingViewModel.defaultSellerName
     var sellerContact = ""
+    /// Set by "Use my current location" (rounded for sharing), or kept from the listing being
+    /// edited. Always both or neither.
+    private(set) var latitude: Double?
+    private(set) var longitude: Double?
 
     // MARK: State
 
@@ -88,12 +100,18 @@ final class CreateListingViewModel {
     private(set) var attemptedSave = false
     private(set) var isSaving = false
     private(set) var assistState: AssistState = .idle
+    private(set) var locationStatus: LocationStatus = .idle
+    /// The place name suggested from the location, remembered so the screen can say the area
+    /// came from there until the person changes it.
+    private var suggestedAreaName: String?
     var photoMessage: String?
     var saveError: String?
 
     @ObservationIgnored private let repository: any ListingRepository
     @ObservationIgnored private let photoStore: PhotoStore
     @ObservationIgnored private let visionAssist: any VisionAssisting
+    /// Source of the current position; nil hides the "Use my current location" button.
+    @ObservationIgnored private let location: (any LocationProviding)?
     /// Account posting the listing (ignored when editing: the original keeps its owner).
     @ObservationIgnored private let sellerID: String?
     /// The listing being edited, or nil when creating a new one.
@@ -111,13 +129,15 @@ final class CreateListingViewModel {
         visionAssist: any VisionAssisting = VisionAssistService(),
         editing original: Listing? = nil,
         defaultSellerName: String? = nil,
-        sellerID: String? = nil
+        sellerID: String? = nil,
+        location: (any LocationProviding)? = nil
     ) {
         self.repository = repository
         self.photoStore = photoStore
         self.visionAssist = visionAssist
         self.original = original
         self.sellerID = sellerID
+        self.location = location
 
         // Build the baseline from the listing itself (not from self's observable
         // properties), then copy it into the form fields.
@@ -132,6 +152,8 @@ final class CreateListingViewModel {
         areaName = initial.areaName
         sellerName = initial.sellerName
         sellerContact = initial.sellerContact
+        latitude = initial.latitude
+        longitude = initial.longitude
     }
 
     private static func initialSnapshot(for original: Listing?, defaultSellerName: String?) -> Snapshot {
@@ -145,11 +167,56 @@ final class CreateListingViewModel {
             areaName: original?.areaName ?? "",
             sellerName: original?.sellerName ?? defaultSellerName ?? Self.defaultSellerName,
             sellerContact: original?.sellerContact ?? "",
-            photoIDs: []
+            photoIDs: [],
+            latitude: original?.latitude,
+            longitude: original?.longitude
         )
     }
 
     var isEditing: Bool { original != nil }
+
+    // MARK: Location
+
+    /// Whether this form can fetch the device's location at all.
+    var canUseLocation: Bool { location != nil }
+    var hasLocation: Bool { latitude != nil && longitude != nil }
+    /// True while the area field still holds the name filled in from the location.
+    var areaFilledFromLocation: Bool {
+        suggestedAreaName != nil && areaName == suggestedAreaName
+    }
+    var isLocating: Bool { locationStatus == .locating }
+
+    /// Fetches the device's position when the person taps the button. The position is rounded
+    /// to about 1 km before it is stored, and the area name is suggested from it, but only
+    /// if the person hasn't typed one.
+    func useCurrentLocation() async {
+        guard let location, !isLocating else { return }
+        locationStatus = .locating
+        do {
+            let coordinate = try await location.currentCoordinate().roundedForSharing()
+            latitude = coordinate.latitude
+            longitude = coordinate.longitude
+            locationStatus = .idle
+
+            if areaName.trimmed.isEmpty, let name = await location.placeName(for: coordinate) {
+                // Re-check: they may have started typing while the lookup ran.
+                if areaName.trimmed.isEmpty {
+                    areaName = name
+                    suggestedAreaName = name
+                }
+            }
+        } catch {
+            locationStatus = .failed((error as? LocationError) ?? .unavailable)
+        }
+    }
+
+    /// Takes the position off the listing again.
+    func clearLocation() {
+        latitude = nil
+        longitude = nil
+        suggestedAreaName = nil
+        locationStatus = .idle
+    }
 
     /// Plain number in the current locale, matching what the price field parses.
     nonisolated private static func priceInput(from price: Decimal) -> String {
@@ -378,9 +445,8 @@ final class CreateListingViewModel {
             price: price,
             condition: condition,
             imageFileNames: imageFileNames,
-            // The form has no location picker, so editing keeps whatever the listing had.
-            latitude: original?.latitude,
-            longitude: original?.longitude,
+            latitude: latitude,
+            longitude: longitude,
             areaName: areaName.trimmed.nilIfEmpty,
             sellerID: original?.sellerID ?? sellerID,
             sellerName: sellerName.trimmed,
@@ -409,7 +475,8 @@ final class CreateListingViewModel {
         Snapshot(
             title: title, description: description, category: category, mode: mode,
             condition: condition, priceInput: priceInput, areaName: areaName,
-            sellerName: sellerName, sellerContact: sellerContact, photoIDs: photos.map { $0.id }
+            sellerName: sellerName, sellerContact: sellerContact, photoIDs: photos.map { $0.id },
+            latitude: latitude, longitude: longitude
         )
     }
 }

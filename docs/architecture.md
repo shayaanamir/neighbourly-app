@@ -400,7 +400,20 @@ models.
 -   Request When-In-Use authorization only after a user action; keep
     browsing usable without permission.
 -   Use demo coordinates for sample data; do not seed private addresses.
-    User-posted listings carry only a locality label.
+    User-posted listings carry a locality label and, optionally, an
+    approximate position (see below).
+-   **Use my current location (Create Listing):** a button in the form's
+    Location section fetches the device's position, only when tapped
+    (permission is requested then, never at launch). Because listings are
+    public, the position is **rounded to two decimal places (about 1 km)**
+    before it is stored, so the map shows "near Powai" and never a
+    doorstep. The area name is suggested from the position with Apple's
+    reverse geocoder (`CLGeocoder`, free; it sends the rounded position to
+    Apple) but only if the area field is empty, and the person can edit or
+    remove both. If permission is denied or no fix is found, a message and
+    an Open Settings button appear and the form still works by typing the
+    area. The form depends on the `LocationProviding` protocol, so it is
+    unit tested with a stand-in.
 -   Avoid geocoding dependencies. Location never leaves the device
     except for the locality label a user types into a listing.
 -   MapKit needs network access for tiles; features must still work

@@ -52,7 +52,8 @@ struct MyListingsView: View {
                         photoStore: dependencies.photoStore,
                         visionAssist: dependencies.visionAssist,
                         defaultSellerName: auth.user?.displayName,
-                        sellerID: auth.user?.uid
+                        sellerID: auth.user?.uid,
+                        locationProvider: dependencies.locationService
                     ) { _ in
                         Task { await viewModel.load(for: auth.user?.uid) }
                     }
@@ -62,7 +63,8 @@ struct MyListingsView: View {
                         repository: dependencies.listingRepository,
                         photoStore: dependencies.photoStore,
                         visionAssist: dependencies.visionAssist,
-                        editing: listing
+                        editing: listing,
+                        locationProvider: dependencies.locationService
                     ) { _ in
                         Task { await viewModel.load(for: auth.user?.uid) }
                     }

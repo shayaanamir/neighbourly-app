@@ -75,7 +75,8 @@ struct BrowseView: View {
                     photoStore: dependencies.photoStore,
                     visionAssist: dependencies.visionAssist,
                     defaultSellerName: auth.user?.displayName,
-                    sellerID: auth.user?.uid
+                    sellerID: auth.user?.uid,
+                    locationProvider: dependencies.locationService
                 ) { listing in
                     Task {
                         await viewModel.listingAdded()

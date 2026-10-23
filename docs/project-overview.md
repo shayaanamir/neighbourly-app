@@ -63,7 +63,9 @@ in-app messaging so contact details stay private.
 2.  Select photos from the photo library.
 3.  Optionally tap Suggest Details for on-device classification and OCR.
 4.  Review and edit title, description, category, mode, condition,
-    price, and area.
+    price, and area. Optionally tap **Use my current location** to pin
+    the listing on the map (rounded to about 1 km for privacy) and fill
+    in the area.
 5.  Save; the listing appears in Browse for everyone and in My Listings.
 
 ### Chat with a seller
