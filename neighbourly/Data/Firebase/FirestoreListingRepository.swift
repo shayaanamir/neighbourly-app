@@ -163,16 +163,17 @@ final class FirestoreListingRepository: ListingRepository, @unchecked Sendable {
     private static func friendly(_ error: Error) -> Error {
         if error is ListingRepositoryError { return error }
         let nsError = error as NSError
-        guard nsError.domain == FirestoreErrorDomain, let code = FirestoreErrorCode.Code(rawValue: nsError.code) else {
+        // Raw gRPC status codes (FIRFirestoreErrorDomain), which don't change between SDK versions.
+        guard nsError.domain == "FIRFirestoreErrorDomain" else {
             logger.error("Firestore error: \(error.localizedDescription, privacy: .public)")
             return ListingRepositoryError.sharedUnavailable(reason: "Something went wrong talking to the server.")
         }
-        switch code {
-        case .unavailable, .deadlineExceeded:
+        switch nsError.code {
+        case 14, 4: // unavailable, deadline exceeded
             return ListingRepositoryError.sharedUnavailable(reason: "The server couldn't be reached. Check your connection.")
-        case .resourceExhausted:
+        case 8: // resource exhausted
             return ListingRepositoryError.sharedUnavailable(reason: "The free daily limit has been reached. Try again tomorrow.")
-        case .permissionDenied, .unauthenticated:
+        case 7, 16: // permission denied, unauthenticated
             return ListingRepositoryError.sharedUnavailable(reason: "You don't have permission to do that. Try signing in again.")
         default:
             logger.error("Unmapped Firestore error code \(nsError.code)")

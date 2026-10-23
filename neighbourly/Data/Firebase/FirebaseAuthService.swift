@@ -132,18 +132,22 @@ final class FirebaseAuthService: AuthService {
     private static func failure(from error: Error) -> AuthFailure {
         if let failure = error as? AuthFailure { return failure }
         let nsError = error as NSError
-        guard nsError.domain == AuthErrorDomain, let code = AuthErrorCode.Code(rawValue: nsError.code) else {
+        // Matched on the raw numbers rather than the SDK's error-code type, whose Swift
+        // shape has changed between Firebase versions. These are Firebase Auth's
+        // documented, stable error codes (FIRAuthErrorDomain).
+        guard nsError.domain == "FIRAuthErrorDomain" else {
+            logger.error("Auth error: \(error.localizedDescription, privacy: .public)")
             return .unknown
         }
-        switch code {
-        case .invalidEmail: return .invalidEmail
-        case .weakPassword: return .weakPassword
-        case .emailAlreadyInUse: return .emailAlreadyInUse
-        case .wrongPassword, .userNotFound, .invalidCredential: return .wrongCredentials
-        case .networkError: return .network
-        case .tooManyRequests: return .tooManyAttempts
-        case .requiresRecentLogin: return .requiresRecentLogin
-        case .userDisabled: return .userDisabled
+        switch nsError.code {
+        case 17008: return .invalidEmail                 // invalid email
+        case 17026: return .weakPassword                 // weak password
+        case 17007: return .emailAlreadyInUse            // email already in use
+        case 17009, 17011, 17004: return .wrongCredentials // wrong password, no such user, invalid credential
+        case 17020: return .network                      // network error
+        case 17010: return .tooManyAttempts              // too many requests
+        case 17014: return .requiresRecentLogin          // requires recent login
+        case 17005: return .userDisabled                 // user disabled
         default:
             logger.error("Unmapped auth error code \(nsError.code)")
             return .unknown

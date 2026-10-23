@@ -159,14 +159,15 @@ final class FirestoreChatRepository: ChatRepository {
     nonisolated private static func chatError(from error: Error) -> ChatError {
         if let chatError = error as? ChatError { return chatError }
         let nsError = error as NSError
-        guard nsError.domain == FirestoreErrorDomain, let code = FirestoreErrorCode.Code(rawValue: nsError.code) else {
+        // Raw gRPC status codes (FIRFirestoreErrorDomain), which don't change between SDK versions.
+        guard nsError.domain == "FIRFirestoreErrorDomain" else {
             logger.error("Chat error: \(error.localizedDescription, privacy: .public)")
             return .unknown
         }
-        switch code {
-        case .unavailable, .deadlineExceeded: return .network
-        case .permissionDenied, .unauthenticated: return .permissionDenied
-        case .resourceExhausted: return .quotaExceeded
+        switch nsError.code {
+        case 14, 4: return .network               // unavailable, deadline exceeded
+        case 7, 16: return .permissionDenied      // permission denied, unauthenticated
+        case 8: return .quotaExceeded             // resource exhausted
         default:
             logger.error("Unmapped Firestore chat error code \(nsError.code)")
             return .unknown
