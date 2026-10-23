@@ -118,7 +118,9 @@ struct ListingMapView: View {
                 .font(Theme.Typography.caption)
                 .padding(.horizontal, Theme.Spacing.m)
                 .padding(.vertical, Theme.Spacing.s)
-                .background(.regularMaterial, in: Capsule())
+                .foregroundStyle(Theme.Colors.primaryText)
+                .background(Theme.Colors.cardBackground, in: Capsule())
+                .shadow(color: Theme.Colors.shadow, radius: 4, y: 2)
                 .padding(Theme.Spacing.m)
         }
     }
@@ -135,7 +137,8 @@ struct ListingMapView: View {
                 }
             }
             .frame(width: 44, height: 44)
-            .background(.regularMaterial, in: Circle())
+            .background(Theme.Colors.cardBackground, in: Circle())
+            .shadow(color: Theme.Colors.shadow, radius: 4, y: 2)
         }
         .buttonStyle(.plain)
         .foregroundStyle(Theme.Colors.accent)

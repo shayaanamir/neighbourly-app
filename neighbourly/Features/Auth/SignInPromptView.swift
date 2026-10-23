@@ -24,7 +24,7 @@ struct SignInPromptView: View {
                 Text(message)
             } actions: {
                 Button("Sign In or Create Account") { auth.requireSignIn() }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.warmCompact)
             }
         }
     }

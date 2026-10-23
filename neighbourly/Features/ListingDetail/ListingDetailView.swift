@@ -235,8 +235,7 @@ struct ListingDetailView: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
+        .buttonStyle(.warmProminent)
         .disabled(isStartingChat)
     }
 
@@ -261,8 +260,7 @@ struct ListingDetailView: View {
             Label("Contact Seller", systemImage: "square.and.arrow.up")
                 .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
+        .buttonStyle(.warmProminent)
 
         contactDetails
     }

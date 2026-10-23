@@ -33,7 +33,7 @@ struct ConversationView: View {
                             systemImage: "exclamationmark.triangle"
                         )
                         .font(Theme.Typography.subheadline)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Theme.Colors.danger)
                         .padding(.vertical, Theme.Spacing.m)
                     } else if viewModel.hasLoaded && viewModel.items.isEmpty {
                         emptyState

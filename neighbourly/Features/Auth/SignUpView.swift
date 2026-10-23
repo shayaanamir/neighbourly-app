@@ -36,6 +36,7 @@ struct SignUpView: View {
             } footer: {
                 Text("Your display name is shown to people you chat with. Your email stays private.")
             }
+            .listRowBackground(Theme.Colors.cardBackground)
 
             Section {
                 VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
@@ -54,9 +55,11 @@ struct SignUpView: View {
             } footer: {
                 Text("At least \(AuthValidation.minPasswordLength) characters.")
             }
+            .listRowBackground(Theme.Colors.cardBackground)
 
             if let message = auth.errorMessage, attempted, isFormValid {
                 Section { FormErrorText(message: message) }
+                .listRowBackground(Theme.Colors.cardBackground)
             }
 
             Section {
@@ -69,6 +72,7 @@ struct SignUpView: View {
                 }
             }
         }
+        .warmForm()
         .navigationTitle("Create Account")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { auth.clearError() }

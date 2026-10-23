@@ -482,6 +482,34 @@ ever exhausted, the app should show a friendly error rather than crash.
     once at launch and Firebase objects are only touched inside the
     `Data/Firebase` layer.
 
+## 11a. Design system
+
+The look lives in one file, `Components/Theme.swift`: a warm, cozy palette
+and soft rounded type that every screen draws from, so a restyle is a
+one-file change.
+
+-   **Palette** (`Palette`): cream and oat surfaces, warm-white cards,
+    espresso text, a terracotta accent, honey and sage for the Exchange
+    and Donate modes, and a warm red for errors. Each color is a single
+    dynamic color with matching Light and Dark values (Dark Mode uses a
+    dark-roast brown, never pure black). Text on cream is about 12:1
+    contrast; secondary text is at least 4.5:1 on every surface; `onAccent`
+    text on the accent is about 4.7:1 in Light Mode and 6.5:1 in Dark Mode
+    (checked with the WCAG contrast formula).
+-   **Type:** Dynamic Type text styles in the rounded design
+    (`Theme.Typography`, plus `.fontDesign(.rounded)` at the root), so
+    text scales with the user's size setting.
+-   **Shape:** generous corner radii (10 / 16 / 22), warm-tinted soft
+    shadows, and a hairline border on cards.
+-   **Controls:** `.warmProminent`, `.warmCompact`, and `.warmSoft` button
+    styles; terracotta selected chips and segmented controls; chat bubbles
+    in terracotta (yours) and warm white (theirs).
+-   **System chrome:** navigation bar, tab bar, and segmented control are
+    styled once at launch in `Theme.applyAppearance()`.
+-   **Rules of thumb:** use `Theme` tokens instead of system colors;
+    `.warmForm()` plus `.listRowBackground(Theme.Colors.cardBackground)`
+    for `Form` and `List` screens; never convey meaning by color alone.
+
 ## 12. Privacy, safety, and errors
 
 -   The app now collects an email address, a display name, listings,

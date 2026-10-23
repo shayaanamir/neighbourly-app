@@ -295,6 +295,10 @@ cannot read the conversation.
 
 -   [ ] Add app icon/title and consistent navigation across the four
     tabs.
+-   [x] Warm, cozy design pass: palette, rounded type, soft cards,
+    terracotta controls, Dark Mode equivalents (`Components/Theme.swift`).
+    Still to check by eye on the Mac: every screen in Light and Dark Mode,
+    and at the largest Dynamic Type size.
 -   [ ] Check loading, empty, error, offline, signed-out, and
     permission-denied states for every screen.
 -   [ ] Test Dark Mode, Dynamic Type, and VoiceOver labels on core

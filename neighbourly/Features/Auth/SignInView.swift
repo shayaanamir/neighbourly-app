@@ -19,6 +19,7 @@ struct SignInView: View {
                     .foregroundStyle(Theme.Colors.secondaryText)
                 if !auth.isCloudBacked { DemoModeNotice() }
             }
+            .listRowBackground(Theme.Colors.cardBackground)
 
             Section {
                 VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
@@ -41,10 +42,12 @@ struct SignInView: View {
                         .font(Theme.Typography.subheadline)
                 }
             }
+            .listRowBackground(Theme.Colors.cardBackground)
 
             // Server-side failures (wrong password, offline, ...).
             if let message = auth.errorMessage, attempted, isFormValid {
                 Section { FormErrorText(message: message) }
+                .listRowBackground(Theme.Colors.cardBackground)
             }
 
             Section {
@@ -62,7 +65,9 @@ struct SignInView: View {
             } footer: {
                 Text("You can keep browsing without an account.")
             }
+            .listRowBackground(Theme.Colors.cardBackground)
         }
+        .warmForm()
         .navigationTitle("Sign In")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -80,7 +85,7 @@ struct DemoModeNotice: View {
             systemImage: "exclamationmark.triangle"
         )
         .font(Theme.Typography.caption)
-        .foregroundStyle(.orange)
+        .foregroundStyle(Theme.Colors.warning)
     }
 }
 

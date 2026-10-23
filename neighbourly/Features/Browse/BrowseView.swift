@@ -49,7 +49,7 @@ struct BrowseView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .background(Theme.Colors.groupedBackground)
-            .navigationTitle("Browse")
+            .navigationTitle("Neighbourly")
             .searchable(text: $viewModel.filters.searchText, prompt: "Search items or areas")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -94,8 +94,10 @@ struct BrowseView: View {
                 .font(Theme.Typography.subheadline.weight(.semibold))
                 .padding(.horizontal, Theme.Spacing.l)
                 .padding(.vertical, Theme.Spacing.m)
-                .background(.regularMaterial, in: Capsule())
-                .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
+                .foregroundStyle(Theme.Colors.primaryText)
+                .background(Theme.Colors.cardBackground, in: Capsule())
+                .overlay(Capsule().strokeBorder(Theme.Colors.separator.opacity(0.6), lineWidth: 0.5))
+                .shadow(color: Theme.Colors.shadow, radius: 6, y: 2)
                 .padding(.bottom, Theme.Spacing.xl)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .accessibilityAddTraits(.isStaticText)

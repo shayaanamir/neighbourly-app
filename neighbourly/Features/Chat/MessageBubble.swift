@@ -20,13 +20,20 @@ struct MessageBubble: View {
                 // Plain text only: message content is never interpreted as markup or links.
                 Text(verbatim: item.text)
                     .font(Theme.Typography.body)
-                    .foregroundStyle(isMine ? Color.white : Theme.Colors.primaryText)
+                    .foregroundStyle(isMine ? Theme.Colors.onAccent : Theme.Colors.primaryText)
                     .padding(.horizontal, Theme.Spacing.m)
                     .padding(.vertical, Theme.Spacing.s)
                     .background(
                         isMine ? Theme.Colors.accent : Theme.Colors.cardBackground,
-                        in: RoundedRectangle(cornerRadius: Theme.Radius.l)
+                        in: UnevenRoundedRectangle(
+                            topLeadingRadius: Theme.Radius.l,
+                            bottomLeadingRadius: isMine ? Theme.Radius.l : 6,
+                            bottomTrailingRadius: isMine ? 6 : Theme.Radius.l,
+                            topTrailingRadius: Theme.Radius.l,
+                            style: .continuous
+                        )
                     )
+                    .shadow(color: isMine ? .clear : Theme.Colors.shadow, radius: 3, x: 0, y: 1)
                     .opacity(item.delivery == .sending ? 0.6 : 1)
                     .textSelection(.enabled)
 
@@ -54,7 +61,7 @@ struct MessageBubble: View {
             VStack(alignment: .trailing, spacing: Theme.Spacing.xs) {
                 Label(message, systemImage: "exclamationmark.circle")
                     .font(Theme.Typography.caption)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Theme.Colors.danger)
                 HStack(spacing: Theme.Spacing.m) {
                     Button("Retry", action: onRetry)
                     Button("Delete", role: .destructive, action: onDiscard)

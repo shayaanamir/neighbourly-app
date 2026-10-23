@@ -62,8 +62,11 @@ struct InboxView: View {
                         isUnread: inbox.isUnread(conversation)
                     )
                 }
+                .listRowBackground(Theme.Colors.cardBackground)
+                .listRowSeparatorTint(Theme.Colors.separator)
             }
             .listStyle(.plain)
+            .warmForm()
         }
     }
 }

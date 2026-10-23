@@ -43,6 +43,7 @@ struct ImageAssistReviewView: View {
         } footer: {
             Text(footerText)
         }
+        .listRowBackground(Theme.Colors.cardBackground)
     }
 
     private var footerText: String {
@@ -96,7 +97,7 @@ struct ImageAssistReviewView: View {
                     .foregroundStyle(Theme.Colors.secondaryText)
             } else {
                 Button("Use") { viewModel.applySuggestedCategory(suggestions.category) }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.warmSoft)
                     .accessibilityLabel("Use \(suggestions.category.displayName) as category")
             }
         }
@@ -136,7 +137,7 @@ struct ImageAssistReviewView: View {
                         Button("Use as title") { viewModel.useAsTitle(line) }
                         Button("Add to description") { viewModel.appendToDescription(line) }
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.warmSoft)
                     .controlSize(.small)
                 }
                 .padding(.vertical, Theme.Spacing.xs)

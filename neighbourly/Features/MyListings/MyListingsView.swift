@@ -123,7 +123,7 @@ struct MyListingsView: View {
                 Text("Items you add on this device will show up here, where you can edit or delete them.")
             } actions: {
                 Button("Add a Listing") { auth.requireSignIn { showCreate = true } }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.warmCompact)
             }
         } else {
             List {
@@ -149,6 +149,7 @@ struct MyListingsView: View {
                 }
             }
             .listStyle(.plain)
+            .warmForm()
             .refreshable { await viewModel.load(for: auth.user?.uid) }
         }
     }

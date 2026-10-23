@@ -45,7 +45,7 @@ struct FormErrorText: View {
         if let message {
             Label(message, systemImage: "exclamationmark.circle")
                 .font(Theme.Typography.caption)
-                .foregroundStyle(.red)
+                .foregroundStyle(Theme.Colors.danger)
                 .accessibilityLabel("Error: \(message)")
         }
     }
@@ -63,14 +63,14 @@ struct AuthSubmitButton: View {
                 Spacer()
                 if isWorking {
                     ProgressView()
+                        .tint(Theme.Colors.onAccent)
                 } else {
                     Text(title).fontWeight(.semibold)
                 }
                 Spacer()
             }
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
+        .buttonStyle(.warmProminent)
         .disabled(isWorking)
         .listRowInsets(EdgeInsets())
         .listRowBackground(Color.clear)

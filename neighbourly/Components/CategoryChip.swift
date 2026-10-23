@@ -24,7 +24,7 @@ struct CategoryChip: View {
             .font(Theme.Typography.subheadline)
             .padding(.horizontal, Theme.Spacing.m)
             .padding(.vertical, Theme.Spacing.s)
-            .foregroundStyle(isSelected ? Color.white : Theme.Colors.primaryText)
+            .foregroundStyle(isSelected ? Theme.Colors.onAccent : Theme.Colors.primaryText)
             .background(
                 isSelected ? Theme.Colors.accent : Theme.Colors.cardBackground,
                 in: Capsule()

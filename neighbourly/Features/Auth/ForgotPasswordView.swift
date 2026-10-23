@@ -30,6 +30,7 @@ struct ForgotPasswordView: View {
             } footer: {
                 Text("We'll email you a link to choose a new password.")
             }
+            .listRowBackground(Theme.Colors.cardBackground)
 
             if didSend {
                 Section {
@@ -41,8 +42,10 @@ struct ForgotPasswordView: View {
                     .font(Theme.Typography.subheadline)
                     .foregroundStyle(Theme.Colors.donate)
                 }
+                .listRowBackground(Theme.Colors.cardBackground)
             } else if let message = auth.errorMessage, attempted, AuthValidation.email(email) == nil {
                 Section { FormErrorText(message: message) }
+                .listRowBackground(Theme.Colors.cardBackground)
             }
 
             Section {
@@ -53,6 +56,7 @@ struct ForgotPasswordView: View {
                 }
             }
         }
+        .warmForm()
         .navigationTitle("Reset Password")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { auth.clearError() }

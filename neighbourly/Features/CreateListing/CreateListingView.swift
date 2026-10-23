@@ -46,6 +46,7 @@ struct CreateListingView: View {
                 offerSection
                 sellerSection
             }
+            .warmForm()
             .navigationTitle(viewModel.isEditing ? "Edit Listing" : "New Listing")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -116,13 +117,14 @@ struct CreateListingView: View {
             if let message = viewModel.photoMessage {
                 Text(message)
                     .font(Theme.Typography.caption)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Theme.Colors.danger)
             }
         } header: {
             Text("Photos")
         } footer: {
             Text("Up to \(CreateListingViewModel.maxPhotos) photos. Optional, but listings with photos are easier to browse.")
         }
+        .listRowBackground(Theme.Colors.cardBackground)
     }
 
     private func photoPreview(_ photo: CreateListingViewModel.SelectedPhoto, number: Int) -> some View {
@@ -176,6 +178,7 @@ struct CreateListingView: View {
                 }
             }
         }
+        .listRowBackground(Theme.Colors.cardBackground)
     }
 
     private var offerSection: some View {
@@ -219,6 +222,7 @@ struct CreateListingView: View {
                 }
             }
         }
+        .listRowBackground(Theme.Colors.cardBackground)
     }
 
     private var sellerSection: some View {
@@ -236,6 +240,7 @@ struct CreateListingView: View {
         } footer: {
             Text("Use a general area, not your street address. Buyers contact you through in-app chat, so there is no need to share an email or phone number.")
         }
+        .listRowBackground(Theme.Colors.cardBackground)
     }
 
     @ViewBuilder
@@ -243,7 +248,7 @@ struct CreateListingView: View {
         if let message {
             Label(message, systemImage: "exclamationmark.circle")
                 .font(Theme.Typography.caption)
-                .foregroundStyle(.red)
+                .foregroundStyle(Theme.Colors.danger)
         }
     }
 

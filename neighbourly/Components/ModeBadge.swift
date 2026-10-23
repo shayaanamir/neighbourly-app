@@ -11,7 +11,7 @@ struct ModeBadge: View {
 
     var body: some View {
         Label(mode.displayName, systemImage: mode.systemImage)
-            .font(.caption.weight(.semibold))
+            .font(Theme.Typography.caption.weight(.semibold))
             .foregroundStyle(mode.tint)
             .padding(.horizontal, Theme.Spacing.s)
             .padding(.vertical, Theme.Spacing.xs / 2)

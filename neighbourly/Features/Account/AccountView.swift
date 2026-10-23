@@ -61,13 +61,16 @@ struct AccountView: View {
             } footer: {
                 Text("Your display name is shown to people you chat with. Your email is only visible to you.")
             }
+            .listRowBackground(Theme.Colors.cardBackground)
 
             if !auth.isCloudBacked {
                 Section { DemoModeNotice() }
+                .listRowBackground(Theme.Colors.cardBackground)
             }
 
             if let message = auth.errorMessage {
                 Section { FormErrorText(message: message) }
+                .listRowBackground(Theme.Colors.cardBackground)
             }
 
             Section {
@@ -80,7 +83,9 @@ struct AccountView: View {
                     showDeleteAlert = true
                 }
             }
+            .listRowBackground(Theme.Colors.cardBackground)
         }
+        .warmForm()
         .confirmationDialog("Sign out of Neighbourly?", isPresented: $showSignOutConfirmation, titleVisibility: .visible) {
             Button("Sign Out", role: .destructive) { auth.signOut() }
             Button("Cancel", role: .cancel) {}
