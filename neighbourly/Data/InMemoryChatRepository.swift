@@ -37,7 +37,7 @@ final class InMemoryChatRepository: ChatRepository {
         conversationListeners[id] = (userID, continuation)
         continuation.yield(conversations(visibleTo: userID))
         continuation.onTermination = { [weak self] _ in
-            Task { @MainActor in self?.conversationListeners[id] = nil }
+            Task { @MainActor [weak self] in self?.conversationListeners[id] = nil }
         }
         return stream
     }
@@ -48,7 +48,7 @@ final class InMemoryChatRepository: ChatRepository {
         messageListeners[id] = (conversationID, continuation)
         continuation.yield(messagesByConversation[conversationID] ?? [])
         continuation.onTermination = { [weak self] _ in
-            Task { @MainActor in self?.messageListeners[id] = nil }
+            Task { @MainActor [weak self] in self?.messageListeners[id] = nil }
         }
         return stream
     }

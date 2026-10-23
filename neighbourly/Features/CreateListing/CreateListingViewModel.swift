@@ -152,7 +152,7 @@ final class CreateListingViewModel {
     var isEditing: Bool { original != nil }
 
     /// Plain number in the current locale, matching what the price field parses.
-    private static func priceInput(from price: Decimal) -> String {
+    nonisolated private static func priceInput(from price: Decimal) -> String {
         price.formatted(.number.locale(.current).grouping(.never).precision(.fractionLength(0...2)))
     }
 

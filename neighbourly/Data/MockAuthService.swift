@@ -49,7 +49,7 @@ final class MockAuthService: AuthService {
         listeners[id] = continuation
         continuation.yield(current)
         continuation.onTermination = { [weak self] _ in
-            Task { @MainActor in self?.listeners[id] = nil }
+            Task { @MainActor [weak self] in self?.listeners[id] = nil }
         }
         return stream
     }

@@ -35,7 +35,7 @@ nonisolated struct ClassifiedLabel: Equatable, Sendable {
     var confidence: Float
 }
 
-nonisolated enum VisionAssistError: LocalizedError, Sendable {
+nonisolated enum VisionAssistError: LocalizedError, Equatable, Sendable {
     case unreadableImage
     case unavailable
     /// The bundled Core ML model is missing from the app or failed to load.

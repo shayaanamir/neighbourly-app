@@ -28,7 +28,10 @@ nonisolated struct VisionAssistService: VisionAssisting {
     }
 
     func analyze(imageData: Data) async throws -> ImageSuggestions {
-        guard CGImageSourceCreateWithData(imageData as CFData, nil) != nil else {
+        // CGImageSourceCreateWithData returns a source even for garbage bytes, so also
+        // check that it contains at least one image.
+        guard let source = CGImageSourceCreateWithData(imageData as CFData, nil),
+              CGImageSourceGetCount(source) > 0 else {
             throw VisionAssistError.unreadableImage
         }
 
