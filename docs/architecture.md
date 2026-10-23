@@ -269,6 +269,14 @@ missing documents gracefully, and surface friendly errors.
 
 ### Sign up / sign in
 
+0.  **Startup page:** when nobody is signed in, the app opens on a welcome
+    screen (`WelcomeView`) with Create an account, I already have an
+    account, and a quiet "Continue as a guest" link. While a saved session
+    is being restored a short launch screen shows, so signed-in people
+    never see the welcome screen flash. Signing out returns to it.
+    `RootView.allowsGuestBrowsing = false` removes the guest option and
+    makes signing in or up mandatory. The decision is the pure function
+    `AppEntry.resolve`, covered by unit tests.
 1.  Guest opens the app and can browse. Tapping Add Listing, My
     Listings, Messages, or Message Seller shows a sign-in prompt.
 2.  Sign up collects display name, email, password (and confirmation);
@@ -498,7 +506,9 @@ one-file change.
     (checked with the WCAG contrast formula).
 -   **Type:** Dynamic Type text styles in the rounded design
     (`Theme.Typography`, plus `.fontDesign(.rounded)` at the root), so
-    text scales with the user's size setting.
+    text scales with the user's size setting. The app's name uses the
+    Snell Roundhand script that ships with iOS (`Typography.script`), on
+    the Browse title and the welcome screen.
 -   **Shape:** generous corner radii (10 / 16 / 22), warm-tinted soft
     shadows, and a hairline border on cards.
 -   **Controls:** `.warmProminent`, `.warmCompact`, and `.warmSoft` button

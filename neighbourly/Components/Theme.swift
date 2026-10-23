@@ -28,14 +28,14 @@ nonisolated enum Palette {
     }
 
     // Surfaces
-    static let background = dynamic(light: 0xFBF4EA, dark: 0x1E1611)        // cream / dark roast
-    static let groupedBackground = dynamic(light: 0xF3E7D6, dark: 0x271D16) // oat / mocha
-    static let card = dynamic(light: 0xFFFBF5, dark: 0x33261D)              // warm white / cocoa
-    static let separator = dynamic(light: 0xE6D5BF, dark: 0x4A3A2E)
+    static let background = dynamic(light: 0xFEF9F1, dark: 0x1E1611)        // light cream / dark roast
+    static let groupedBackground = dynamic(light: 0xF8EFE2, dark: 0x271D16) // soft oat / mocha
+    static let card = dynamic(light: 0xFFFDF9, dark: 0x33261D)              // warm white / cocoa
+    static let separator = dynamic(light: 0xEDE0CE, dark: 0x4A3A2E)
 
     // Text (primary on cream is about 12:1; secondary is at least 4.5:1 on every surface)
-    static let primaryText = dynamic(light: 0x3A2A20, dark: 0xF5E9DB)       // espresso / latte foam
-    static let secondaryText = dynamic(light: 0x705B4C, dark: 0xC4AF9D)
+    static let primaryText = dynamic(light: 0x43322A, dark: 0xF5E9DB)       // soft espresso / latte foam
+    static let secondaryText = dynamic(light: 0x7A6556, dark: 0xC4AF9D)
 
     // Brand
     static let accent = dynamic(light: 0xB8502B, dark: 0xE8895F)            // terracotta / warm clay
@@ -51,7 +51,7 @@ nonisolated enum Palette {
     static let warning = dynamic(light: 0x8F5E12, dark: 0xE2A94A)
 
     /// Soft shadow under cards: warm brown in light mode, deeper in dark mode.
-    static let shadow = dynamic(light: 0x6B4423, dark: 0x000000, lightAlpha: 0.14, darkAlpha: 0.45)
+    static let shadow = dynamic(light: 0x6B4423, dark: 0x000000, lightAlpha: 0.11, darkAlpha: 0.45)
 }
 
 private nonisolated extension UIColor {
@@ -112,6 +112,12 @@ enum Theme {
         static let subheadline = Font.system(.subheadline, design: .rounded)
         static let caption = Font.system(.caption, design: .rounded)
         static let price = Font.system(.headline, design: .rounded).monospacedDigit()
+
+        /// Flowing script for the app's name (Snell Roundhand ships with iOS). It scales with
+        /// Dynamic Type relative to `style`, and falls back to the system font if missing.
+        static func script(_ size: CGFloat, relativeTo style: Font.TextStyle = .largeTitle) -> Font {
+            Font.custom("SnellRoundhand-Bold", size: size, relativeTo: style)
+        }
     }
 
     /// Navigation bars, tab bar, and segmented controls are UIKit under the hood, so their
@@ -241,6 +247,32 @@ struct WarmSoftButtonStyle: ButtonStyle {
             .padding(.vertical, Theme.Spacing.s)
             .background(Theme.Colors.accent.opacity(configuration.isPressed ? 0.22 : 0.13), in: Capsule())
     }
+}
+
+/// Full-width outlined button for the second choice next to a prominent one.
+struct WarmOutlineButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(Theme.Typography.headline)
+            .foregroundStyle(Theme.Colors.accent)
+            .padding(.vertical, Theme.Spacing.m)
+            .padding(.horizontal, Theme.Spacing.xl)
+            .frame(maxWidth: .infinity)
+            .background(
+                Theme.Colors.cardBackground.opacity(configuration.isPressed ? 0.6 : 1),
+                in: RoundedRectangle(cornerRadius: Theme.Radius.m, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: Theme.Radius.m, style: .continuous)
+                    .strokeBorder(Theme.Colors.accent.opacity(0.7), lineWidth: 1.5)
+            }
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .animation(.snappy(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
+extension ButtonStyle where Self == WarmOutlineButtonStyle {
+    static var warmOutline: WarmOutlineButtonStyle { WarmOutlineButtonStyle() }
 }
 
 extension ButtonStyle where Self == WarmProminentButtonStyle {

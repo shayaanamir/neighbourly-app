@@ -12,20 +12,29 @@ struct AuthFlowView: View {
     @Environment(AuthViewModel.self) private var auth
 
     enum Route: Hashable {
+        case signIn
         case signUp
         case forgotPassword(prefillEmail: String)
+    }
+
+    /// The screen for a route; shared with the welcome screen, which pushes the same ones.
+    @ViewBuilder
+    static func destination(for route: Route) -> some View {
+        switch route {
+        case .signIn:
+            SignInView()
+        case .signUp:
+            SignUpView()
+        case .forgotPassword(let email):
+            ForgotPasswordView(email: email)
+        }
     }
 
     var body: some View {
         NavigationStack {
             SignInView()
                 .navigationDestination(for: Route.self) { route in
-                    switch route {
-                    case .signUp:
-                        SignUpView()
-                    case .forgotPassword(let email):
-                        ForgotPasswordView(email: email)
-                    }
+                    Self.destination(for: route)
                 }
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {

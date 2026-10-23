@@ -50,8 +50,17 @@ struct BrowseView: View {
             }
             .background(Theme.Colors.groupedBackground)
             .navigationTitle("Neighbourly")
+            .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $viewModel.filters.searchText, prompt: "Search items or areas")
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Neighbourly")
+                        .font(Theme.Typography.script(34, relativeTo: .title))
+                        .foregroundStyle(Theme.Colors.accent)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .accessibilityAddTraits(.isHeader)
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         auth.requireSignIn { showCreateListing = true }
