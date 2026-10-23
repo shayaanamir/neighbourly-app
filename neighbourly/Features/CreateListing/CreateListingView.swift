@@ -156,6 +156,12 @@ struct CreateListingView: View {
 
     private var detailsSection: some View {
         Section("Details") {
+            if viewModel.autofillNoteVisible {
+                Label("Autofilled from your photo. Please check it and edit anything that isn't right.", systemImage: "wand.and.stars")
+                    .font(Theme.Typography.caption)
+                    .foregroundStyle(Theme.Colors.secondaryText)
+            }
+
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 TextField("Title", text: $viewModel.title)
                     .textInputAutocapitalization(.sentences)

@@ -34,9 +34,17 @@ nonisolated enum LocationError: LocalizedError, Equatable, Sendable {
     var errorDescription: String? {
         switch self {
         case .denied: "Location access is off for Neighbourly."
-        case .unavailable: "Your location couldn't be found right now. You can type your area instead."
+        case .unavailable: Self.unavailableMessage
         case .busy: "Still finding your location…"
         }
+    }
+
+    private static var unavailableMessage: String {
+        #if targetEnvironment(simulator)
+        return "Your location couldn't be found. In the Simulator, choose Features > Location > Custom Location, then try again. You can also type your area."
+        #else
+        return "Your location couldn't be found right now. You can type your area instead."
+        #endif
     }
 }
 
@@ -165,9 +173,11 @@ final class LocationService: NSObject, CLLocationManagerDelegate, LocationProvid
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: any Error) {
+        // "Denied" means the person (or Settings) said no; anything else is just "no fix yet".
+        let denied = (error as? CLError)?.code == .denied
         Task { @MainActor in
             guard self.state == .requesting else { return }
-            self.setState(.unavailable)
+            self.setState(denied ? .denied : .unavailable)
         }
     }
 

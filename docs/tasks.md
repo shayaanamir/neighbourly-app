@@ -106,6 +106,9 @@ it after relaunch.
     appliance, and item with printed text.
 -   [x] Add a short UI disclosure: image analysis runs on device;
     results can be wrong.
+-   [x] Add "Autofill from photo": a draft title, description, and category
+    from the analysis (`ListingAutofill`), only into empty fields, never
+    copying phone numbers, emails, or prices, with a "check this" note.
 
 **Acceptance:** no API key or upload is used; suggestions can be
 dismissed or edited.

@@ -104,6 +104,14 @@ final class CreateListingViewModel {
     /// The place name suggested from the location, remembered so the screen can say the area
     /// came from there until the person changes it.
     private var suggestedAreaName: String?
+
+    /// What the last Autofill did, in words ("Filled in: title, description."), or nil.
+    private(set) var autofillMessage: String?
+    /// True when Autofill skipped a field because it already had text, so the screen can
+    /// offer "Replace what I've written".
+    private(set) var autofillSkippedExisting = false
+    private var autofilledTitle: String?
+    private var autofilledDescription: String?
     var photoMessage: String?
     var saveError: String?
 
@@ -180,6 +188,13 @@ final class CreateListingViewModel {
     /// Whether this form can fetch the device's location at all.
     var canUseLocation: Bool { location != nil }
     var hasLocation: Bool { latitude != nil && longitude != nil }
+    /// True while the title or description still holds text Autofill wrote, so the screen can ask
+    /// the person to check it. Editing the text makes it theirs and the note goes away.
+    var autofillNoteVisible: Bool {
+        (autofilledTitle != nil && title == autofilledTitle)
+            || (autofilledDescription != nil && description == autofilledDescription)
+    }
+
     /// True while the area field still holds the name filled in from the location.
     var areaFilledFromLocation: Bool {
         suggestedAreaName != nil && areaName == suggestedAreaName
@@ -347,6 +362,72 @@ final class CreateListingViewModel {
         }
     }
 
+    // MARK: Autofill
+
+    /// One tap: analyse the first photo (if that hasn't happened yet) and fill in what it found.
+    func autofillFromPhoto() async {
+        guard !photos.isEmpty else { return }
+        if case .result = assistState {
+            // Already analysed: reuse it.
+        } else {
+            await suggestDetails()
+        }
+
+        switch assistState {
+        case .result:
+            autofill()
+        case .noResult:
+            autofillMessage = "Nothing in the photo was clear enough to fill in. You can write the details yourself."
+        case .failed:
+            autofillMessage = "The photo couldn't be analysed, so nothing was filled in."
+        case .idle, .analyzing:
+            break
+        }
+    }
+
+    /// Writes a draft title, description, and category from the photo analysis. Only empty
+    /// fields are filled (the category counts as empty while it is still "Other"), unless
+    /// `replaceExisting` is true. Never touches price, contact, or location.
+    func autofill(replaceExisting: Bool = false) {
+        guard case .result(let suggestions) = assistState else { return }
+        let draft = ListingAutofill.draft(from: suggestions, mode: mode, condition: condition)
+
+        var filled: [String] = []
+        var skipped = false
+
+        if let newTitle = draft.title {
+            if replaceExisting || title.trimmed.isEmpty {
+                title = newTitle
+                autofilledTitle = newTitle
+                filled.append("title")
+            } else {
+                skipped = true
+            }
+        }
+        if let newDescription = draft.description {
+            if replaceExisting || description.trimmed.isEmpty {
+                description = newDescription
+                autofilledDescription = newDescription
+                filled.append("description")
+            } else {
+                skipped = true
+            }
+        }
+        if let newCategory = draft.category, category != newCategory, replaceExisting || category == .other {
+            category = newCategory
+            filled.append("category")
+        }
+
+        autofillSkippedExisting = skipped
+        if !filled.isEmpty {
+            autofillMessage = "Filled in: \(filled.joined(separator: ", ")). Please check it and edit anything that isn't right."
+        } else if skipped {
+            autofillMessage = "Your title and description already have text, so nothing was changed."
+        } else {
+            autofillMessage = "Nothing in the photo was clear enough to fill in."
+        }
+    }
+
     func applySuggestedCategory(_ suggested: ListingCategory) {
         category = suggested
     }
@@ -363,6 +444,8 @@ final class CreateListingViewModel {
     func dismissSuggestions() {
         analysisToken = nil
         analyzedPhotoID = nil
+        autofillMessage = nil
+        autofillSkippedExisting = false
         assistState = .idle
     }
 

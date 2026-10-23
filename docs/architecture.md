@@ -297,7 +297,9 @@ missing documents gracefully, and surface friendly errors.
 ### Create listing
 
 1.  Signed-in user selects up to 5 photos with `PhotosPicker`.
-2.  User may tap "Suggest details" (Core ML + OCR, section 8).
+2.  User may tap **Autofill from photo** (or "Suggest details" to review
+    first) (Core ML + OCR, section 8). Autofill writes a draft title,
+    description, and category, only into empty fields.
 3.  User edits title, description, category, mode, condition, price,
     area.
 4.  Validate, compress photos, and save through the repository; the
@@ -383,6 +385,24 @@ version used here is about 12.4 MB). It is used through Vision's
     `VNClassifyImageRequest` on a physical device, and otherwise report
     that classification is unavailable. OCR and manual category choice
     always work.
+
+**Autofill (`ListingAutofill`):** pure wording logic that turns the
+analysis into a draft, built only from what was recognised plus choices
+the person already made.
+
+-   Title: the top label in everyday words ("book jacket" becomes "Book",
+    "notebook" becomes "Laptop"), with a printed brand or name in front
+    when one is found ("Zara backpack"); printed text alone if there is no
+    label.
+-   Description: "<title> in <condition> condition." plus a line for
+    Donate ("Free to a good home.") or Exchange ("Happy to exchange it."),
+    plus up to three other printed lines quoted as "Text on the item".
+-   Never copied: phone numbers, emails, web addresses, prices, or lines
+    that are mostly digits or too long. Price, contact, and location are
+    never touched.
+-   Only empty fields are filled (the category counts as empty while it is
+    "Other"); "Replace what I've written" is a separate, explicit choice.
+    A note asks the person to check autofilled text until they edit it.
 
 **OCR:** `VNRecognizeTextRequest` returns recognized lines as untrusted
 plain text. Users can use a line as the title or add it to the

@@ -15,7 +15,9 @@ struct ImageAssistReviewView: View {
         Section {
             switch viewModel.assistState {
             case .idle:
+                autofillButton
                 suggestButton
+                autofillMessageView
 
             case .analyzing:
                 HStack(spacing: Theme.Spacing.m) {
@@ -35,6 +37,7 @@ struct ImageAssistReviewView: View {
 
             case .failed(let reason):
                 message(reason, systemImage: "exclamationmark.triangle")
+                autofillButton
                 suggestButton
                 dismissButton
             }
@@ -50,18 +53,43 @@ struct ImageAssistReviewView: View {
         if viewModel.photos.isEmpty {
             return "Add a photo to get suggestions. Analysis runs on your device — nothing is uploaded — and results can be wrong, so always check them."
         }
-        return "A pretrained image model (MobileNetV2) and text recognition run on your device — nothing is uploaded. Results can be wrong, so check them before using. Based on your first photo."
+        return "A pretrained image model (MobileNetV2) and text recognition run on your device — nothing is uploaded. Results can be wrong, so check them before using. Autofill only fills empty fields and never touches price or contact details. Based on your first photo."
     }
 
     // MARK: - Pieces
+
+    /// One tap: analyse the photo and write a draft title, description, and category.
+    private var autofillButton: some View {
+        Button {
+            Task { await viewModel.autofillFromPhoto() }
+        } label: {
+            Label("Autofill from photo", systemImage: "wand.and.stars")
+        }
+        .disabled(viewModel.photos.isEmpty)
+    }
 
     private var suggestButton: some View {
         Button {
             Task { await viewModel.suggestDetails() }
         } label: {
-            Label("Suggest Details", systemImage: "sparkles")
+            Label("Suggest details (review first)", systemImage: "sparkles")
         }
         .disabled(viewModel.photos.isEmpty)
+    }
+
+    /// What Autofill just did, with a way to replace text the person had already written.
+    @ViewBuilder
+    private var autofillMessageView: some View {
+        if let text = viewModel.autofillMessage {
+            Label(text, systemImage: "wand.and.stars")
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.secondaryText)
+
+            if viewModel.autofillSkippedExisting {
+                Button("Replace what I've written") { viewModel.autofill(replaceExisting: true) }
+                    .buttonStyle(.warmSoft)
+            }
+        }
     }
 
     private var dismissButton: some View {
@@ -76,6 +104,14 @@ struct ImageAssistReviewView: View {
 
     @ViewBuilder
     private func resultContent(_ suggestions: ImageSuggestions) -> some View {
+        // Autofill from what was found below
+        Button {
+            viewModel.autofill()
+        } label: {
+            Label("Autofill title & description", systemImage: "wand.and.stars")
+        }
+        autofillMessageView
+
         // Category
         if suggestions.classificationUnavailable {
             message(
