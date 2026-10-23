@@ -40,12 +40,16 @@ nonisolated enum VisionAssistError: LocalizedError, Sendable {
     case unavailable
     /// The bundled Core ML model is missing from the app or failed to load.
     case modelUnavailable
+    /// The model loaded but running it on the photo failed; `reason` is the underlying error,
+    /// kept so a failing test or log says why.
+    case classifierFailed(reason: String)
 
     var errorDescription: String? {
         switch self {
         case .unreadableImage: "That photo couldn't be analysed."
         case .unavailable: "Image analysis isn't available right now."
         case .modelUnavailable: "The image recognition model couldn't be loaded."
+        case .classifierFailed: "The photo couldn't be recognised."
         }
     }
 }

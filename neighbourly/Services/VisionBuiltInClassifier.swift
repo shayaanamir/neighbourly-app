@@ -58,7 +58,7 @@ nonisolated struct VisionBuiltInClassifier: ImageClassifying {
 
         guard !passes.isEmpty else {
             Self.logger.error("Vision classification failed: \(lastError?.localizedDescription ?? "no results", privacy: .public)")
-            throw VisionAssistError.unavailable
+            throw VisionAssistError.classifierFailed(reason: lastError.map { "\($0)" } ?? "no results")
         }
         return ClassificationImage.merge(passes)
         #endif

@@ -56,6 +56,13 @@ nonisolated struct CoreMLClassificationService: ImageClassifying {
                 try VNImageRequestHandler(cgImage: image, options: [:]).perform([request])
 
                 let observations = (request.results as? [VNClassificationObservation]) ?? []
+                guard !observations.isEmpty else {
+                    // The request ran but produced nothing usable (for example a different
+                    // observation type); don't count this pass as a success.
+                    let kinds = (request.results ?? []).map { String(describing: type(of: $0)) }
+                    lastError = VisionAssistError.classifierFailed(reason: "no classifications; got \(kinds)")
+                    continue
+                }
                 passes.append(observations.prefix(10).map {
                     ClassifiedLabel(identifier: $0.identifier, confidence: $0.confidence)
                 })
@@ -66,7 +73,7 @@ nonisolated struct CoreMLClassificationService: ImageClassifying {
 
         guard !passes.isEmpty else {
             Self.logger.error("Core ML classification failed: \(lastError?.localizedDescription ?? "no results", privacy: .public)")
-            throw VisionAssistError.unavailable
+            throw VisionAssistError.classifierFailed(reason: lastError.map { "\($0)" } ?? "no results")
         }
 
         let labels = ClassificationImage.merge(passes)
