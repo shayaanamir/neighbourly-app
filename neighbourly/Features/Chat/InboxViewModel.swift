@@ -13,7 +13,12 @@ import Observation
 final class InboxViewModel {
     private(set) var conversations: [Conversation] = []
     private(set) var hasLoaded = false
+    /// True when the live connection ended before the first list arrived, for example because
+    /// the server refused it. The screen shows an error instead of loading forever.
+    private(set) var loadFailed = false
     private(set) var userID: String?
+    /// Changing this restarts `run` (see the root's `.task(id:)`), for a Try Again button.
+    private(set) var reloadToken = 0
 
     @ObservationIgnored private let chat: any ChatRepository
 
@@ -35,9 +40,14 @@ final class InboxViewModel {
     /// Follows the inbox for one account. Run from a `.task(id:)` keyed on the user's ID:
     /// when the account changes or signs out the task is cancelled and this runs again,
     /// so one person's conversations are never shown to the next.
+    func retry() {
+        reloadToken += 1
+    }
+
     func run(userID: String?) async {
         conversations = []
         hasLoaded = false
+        loadFailed = false
         self.userID = userID
         guard let userID else { return }
 
@@ -46,6 +56,9 @@ final class InboxViewModel {
             if Task.isCancelled || self.userID != userID { break }
             conversations = list.sorted { $0.sortDate > $1.sortDate }
             hasLoaded = true
+        }
+        if !hasLoaded && !Task.isCancelled && self.userID == userID {
+            loadFailed = true
         }
     }
 }

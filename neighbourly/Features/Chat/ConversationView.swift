@@ -27,7 +27,15 @@ struct ConversationView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: Theme.Spacing.s) {
-                    if viewModel.hasLoaded && viewModel.items.isEmpty {
+                    if viewModel.loadFailed {
+                        Label(
+                            "Couldn't load this conversation. Check your connection and reopen it.",
+                            systemImage: "exclamationmark.triangle"
+                        )
+                        .font(Theme.Typography.subheadline)
+                        .foregroundStyle(.red)
+                        .padding(.vertical, Theme.Spacing.m)
+                    } else if viewModel.hasLoaded && viewModel.items.isEmpty {
                         emptyState
                     }
 

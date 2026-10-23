@@ -37,6 +37,14 @@ struct InboxView: View {
                 message: "Chats with buyers and sellers appear here once you have an account.",
                 systemImage: "bubble.left.and.bubble.right"
             )
+        } else if inbox.loadFailed {
+            ContentUnavailableView {
+                Label("Couldn't load messages", systemImage: "exclamationmark.triangle")
+            } description: {
+                Text("Check your internet connection. If it keeps happening, the app's database rules may not be published yet.")
+            } actions: {
+                Button("Try Again") { inbox.retry() }
+            }
         } else if !inbox.hasLoaded {
             ProgressView("Loading messages…")
         } else if inbox.conversations.isEmpty {

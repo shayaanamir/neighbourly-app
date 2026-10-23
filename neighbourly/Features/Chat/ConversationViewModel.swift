@@ -19,6 +19,9 @@ final class ConversationViewModel {
     private(set) var serverMessages: [ChatMessage] = []
     private(set) var outbox: [ChatItem] = []
     private(set) var hasLoaded = false
+    /// True when the live connection ended before any messages arrived (for example the
+    /// server refused it), so the screen can say so.
+    private(set) var loadFailed = false
 
     /// True while the screen is on display. Messages only count as read when someone can see them.
     var isActive = false
@@ -84,6 +87,9 @@ final class ConversationViewModel {
             let confirmed = Set(messages.map { $0.id })
             outbox.removeAll { confirmed.contains($0.id) }
             await markReadIfNeeded()
+        }
+        if !hasLoaded && !Task.isCancelled {
+            loadFailed = true
         }
     }
 

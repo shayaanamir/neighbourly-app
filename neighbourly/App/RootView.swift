@@ -42,7 +42,9 @@ struct RootView: View {
         .environment(inbox)
         // The inbox follows the signed-in account; it empties on sign-out and when switching
         // accounts, so one person's conversations are never shown to the next.
-        .task(id: auth.user?.uid) { await inbox.run(userID: auth.user?.uid) }
+        .task(id: "\(auth.user?.uid ?? "signed-out")#\(inbox.reloadToken)") {
+            await inbox.run(userID: auth.user?.uid)
+        }
         // Follows sign-in/out for the life of the app (restores a saved session at launch).
         .task { await auth.start() }
         .sheet(isPresented: $auth.isPresentingAuth, onDismiss: { auth.runPendingAction() }) {

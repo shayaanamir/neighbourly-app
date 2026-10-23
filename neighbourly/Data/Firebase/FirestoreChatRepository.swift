@@ -40,7 +40,8 @@ final class FirestoreChatRepository: ChatRepository {
             .addSnapshotListener { snapshot, error in
                 if let error {
                     Self.logger.error("Conversation listener failed: \(error.localizedDescription, privacy: .public)")
-                    return // keep the last good list on screen
+                    continuation.finish() // Firestore stops a failed listener; tell the screen
+                    return
                 }
                 guard let snapshot else { return }
                 let conversations = snapshot.documents.compactMap {
@@ -60,6 +61,7 @@ final class FirestoreChatRepository: ChatRepository {
             .addSnapshotListener { snapshot, error in
                 if let error {
                     Self.logger.error("Message listener failed: \(error.localizedDescription, privacy: .public)")
+                    continuation.finish()
                     return
                 }
                 guard let snapshot else { return }
