@@ -58,10 +58,14 @@ protocol LocationProviding {
 
     /// A neighbourhood or town name for the position, if one can be looked up.
     func placeName(for coordinate: Coordinate) async -> String?
+
+    /// A position for a typed area name ("Powai, Mumbai"), if one can be looked up. Needs no permission.
+    func coordinate(forPlaceName name: String) async -> Coordinate?
 }
 
 extension LocationProviding {
     func placeName(for coordinate: Coordinate) async -> String? { nil }
+    func coordinate(forPlaceName name: String) async -> Coordinate? { nil }
 }
 
 @Observable
@@ -121,6 +125,11 @@ final class LocationService: NSObject, CLLocationManagerDelegate, LocationProvid
         let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
         guard let placemark = try? await CLGeocoder().reverseGeocodeLocation(location).first else { return nil }
         return placemark.subLocality ?? placemark.locality
+    }
+
+    func coordinate(forPlaceName name: String) async -> Coordinate? {
+        guard let location = try? await CLGeocoder().geocodeAddressString(name).first?.location else { return nil }
+        return Coordinate(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
     }
 
     /// Clears a denied/unavailable message after the user has seen it.

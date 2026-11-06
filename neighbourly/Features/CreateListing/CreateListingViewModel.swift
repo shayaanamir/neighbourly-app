@@ -499,6 +499,13 @@ final class CreateListingViewModel {
                 case .new: remainingNew.next()
                 }
             }
+            // No position yet? Place the listing from the typed area name so it shows on the map.
+            if latitude == nil || longitude == nil, let location, !areaName.trimmed.isEmpty,
+               let found = await location.coordinate(forPlaceName: areaName.trimmed) {
+                let rounded = found.roundedForSharing()
+                latitude = rounded.latitude
+                longitude = rounded.longitude
+            }
             let listing = makeListing(imageFileNames: fileNames)
             // When editing, the repository deletes files the listing no longer references.
             try await repository.save(listing)
